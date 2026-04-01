@@ -45,10 +45,45 @@ class FreeRADIUSConfigGenerator:
         self.policy_engine = policy_engine
         self.config_dir = config_dir
         self._ensure_backup_dir()
+        self._setup_freeradius_mab_config()
 
     def _ensure_backup_dir(self) -> None:
         """Ensure backup directory exists."""
         Path(BACKUP_DIR).mkdir(exist_ok=True)
+
+    def _setup_freeradius_mab_config(self) -> None:
+        """
+        Setup FreeRADIUS to use mab_users file on initialization.
+        This ensures FreeRADIUS is configured for MAB even if it was already running.
+        """
+        try:
+            # Update the files module to use mab_users
+            files_mod_path = os.path.join(self.config_dir, "mods-enabled", "files")
+            files_mod_content = """files {
+\tusersfile = ${confdir}/mab_users
+\tacctusersfile = ${confdir}/acct_users
+\tcompat = 3.0
+}
+"""
+            
+            # Only write if it doesn't exist or is different
+            if not os.path.exists(files_mod_path):
+                with open(files_mod_path, "w") as f:
+                    f.write(files_mod_content)
+                logger.info(f"Created {files_mod_path}")
+            
+            # Create initial mab_users file if it doesn't exist
+            mab_users_path = os.path.join(self.config_dir, "mab_users")
+            if not os.path.exists(mab_users_path):
+                initial_content = self.generate_mab_users()
+                with open(mab_users_path, "w") as f:
+                    f.write(initial_content)
+                logger.info(f"Created initial {mab_users_path}")
+                
+        except PermissionError:
+            logger.warning("Permission denied setting up FreeRADIUS MAB config. Run with sudo.")
+        except Exception as e:
+            logger.warning(f"Failed to setup FreeRADIUS MAB config: {e}")
 
     def generate_clients_conf(self) -> str:
         """
@@ -197,12 +232,13 @@ class FreeRADIUSConfigGenerator:
     def reload_freeradius(self) -> bool:
         """
         Reload FreeRADIUS configuration.
+        Falls back to restart if reload is not supported.
 
         Returns:
             True if successful, False otherwise
         """
         try:
-            # Try systemctl reload first, fall back to restart if not supported
+            # Try systemctl reload first
             result = subprocess.run(
                 ["sudo", "systemctl", "reload", "freeradius"],
                 capture_output=True,
@@ -212,25 +248,26 @@ class FreeRADIUSConfigGenerator:
             if result.returncode == 0:
                 logger.info("FreeRADIUS reloaded successfully")
                 return True
-            else:
-                # If reload not supported, try restart
-                stderr = result.stderr.decode()
-                if "reload is not applicable" in stderr or "not supported" in stderr:
-                    logger.info("Reload not supported, restarting FreeRADIUS instead")
-                    result = subprocess.run(
-                        ["sudo", "systemctl", "restart", "freeradius"],
-                        capture_output=True,
-                        timeout=10,
-                    )
-                    if result.returncode == 0:
-                        logger.info("FreeRADIUS restarted successfully")
-                        return True
-                    else:
-                        logger.error(f"Failed to restart FreeRADIUS: {result.stderr.decode()}")
-                        return False
+            
+            # If reload not supported, try restart
+            stderr = result.stderr.decode() if result.stderr else ""
+            if "reload is not applicable" in stderr or "not supported" in stderr:
+                logger.info("Reload not supported, restarting FreeRADIUS instead")
+                result = subprocess.run(
+                    ["sudo", "systemctl", "restart", "freeradius"],
+                    capture_output=True,
+                    timeout=10,
+                )
+                if result.returncode == 0:
+                    logger.info("FreeRADIUS restarted successfully")
+                    return True
                 else:
-                    logger.error(f"Failed to reload FreeRADIUS: {stderr}")
+                    error_msg = result.stderr.decode() if result.stderr else "Unknown error"
+                    logger.error(f"Failed to restart FreeRADIUS: {error_msg}")
                     return False
+            else:
+                logger.error(f"Failed to reload FreeRADIUS: {stderr}")
+                return False
 
         except subprocess.TimeoutExpired:
             logger.error("FreeRADIUS reload/restart timed out")
