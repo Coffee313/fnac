@@ -116,6 +116,7 @@ class FreeRADIUSConfigGenerator:
         """
         Generate mab_users file content from client and policy data.
         Creates entries for both colon-separated and non-colon MAC formats.
+        For MAB, username and password are both the MAC address.
 
         Returns:
             String content of mab_users file
@@ -128,7 +129,7 @@ class FreeRADIUSConfigGenerator:
             "# Edit clients and policies in FNAC UI instead",
             "",
             "# MAB Users - MAC Authentication Bypass",
-            "# Format: MAC-Address Cleartext-Password := \"password\"",
+            "# Format: MAC-Address Cleartext-Password := \"MAC-Address\"",
             "#         [Tunnel-Type = VLAN,]",
             "#         [Tunnel-Medium-Type = IEEE-802,]",
             "#         [Tunnel-Private-Group-ID = \"vlan_id\"]",
@@ -155,13 +156,13 @@ class FreeRADIUSConfigGenerator:
             elif decision == PolicyDecision.REJECT:
                 vlan_attrs = [f'    # REJECTED - will not authenticate']
 
-            # Entry with colons (standard format)
-            lines.append(f'{mac} Cleartext-Password := "mab"')
+            # Entry with colons (standard format) - MAC is both username and password
+            lines.append(f'{mac} Cleartext-Password := "{mac}"')
             lines.extend(vlan_attrs)
             lines.append("")
 
             # Entry without colons (for radtest and some clients)
-            lines.append(f'{mac_no_colons} Cleartext-Password := "mab"')
+            lines.append(f'{mac_no_colons} Cleartext-Password := "{mac_no_colons}"')
             lines.extend(vlan_attrs)
             lines.append("")
 
