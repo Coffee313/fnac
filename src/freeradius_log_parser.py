@@ -98,13 +98,24 @@ class FreeRADIUSLogParser:
                 vlan_id = self._extract_vlan(line)
                 policy_decision = "accept_with_vlan" if vlan_id else "accept_without_vlan"
                 
-                self.log_manager.create_log_entry(
+                # Create log entry with explicit timestamp
+                from src.models import AuthenticationLog, AuthenticationOutcome
+                import uuid
+                log = AuthenticationLog(
+                    id=str(uuid.uuid4()),
+                    timestamp=timestamp,
                     client_mac=mac_address,
                     device_id=device_name,
                     outcome=AuthenticationOutcome.SUCCESS,
                     vlan_id=vlan_id,
                     policy_decision=policy_decision,
+                    created_at=timestamp,  # Use same timestamp for created_at
                 )
+                
+                # Save directly to database
+                from src.db_persistence import LogPersistence as DBLogPersistence
+                DBLogPersistence.save_log(log)
+                
                 logger.debug(f"Created SUCCESS log entry for {mac_address}")
                 return True
             except Exception as e:
@@ -121,12 +132,23 @@ class FreeRADIUSLogParser:
             try:
                 timestamp = self._parse_timestamp(timestamp_str)
                 
-                self.log_manager.create_log_entry(
+                # Create log entry with explicit timestamp
+                from src.models import AuthenticationLog, AuthenticationOutcome
+                import uuid
+                log = AuthenticationLog(
+                    id=str(uuid.uuid4()),
+                    timestamp=timestamp,
                     client_mac=mac_address,
                     device_id=device_name,
                     outcome=AuthenticationOutcome.FAILURE,
                     policy_decision="reject",
+                    created_at=timestamp,  # Use same timestamp for created_at
                 )
+                
+                # Save directly to database
+                from src.db_persistence import LogPersistence as DBLogPersistence
+                DBLogPersistence.save_log(log)
+                
                 logger.debug(f"Created FAILURE log entry for {mac_address}")
                 return True
             except Exception as e:
@@ -136,12 +158,18 @@ class FreeRADIUSLogParser:
         return False
 
     def _parse_timestamp(self, timestamp_str: str) -> datetime:
-        """Parse FreeRADIUS timestamp format: 'Wed Apr  1 18:48:36 2026'"""
+        """Parse FreeRADIUS timestamp format: 'Wed Apr  1 18:48:36 2026' and convert to GMT+3."""
         try:
-            return datetime.strptime(timestamp_str, "%a %b %d %H:%M:%S %Y")
+            # Parse the timestamp as UTC first
+            dt = datetime.strptime(timestamp_str, "%a %b %d %H:%M:%S %Y")
+            # Add 3 hours for GMT+3
+            from datetime import timedelta
+            dt = dt + timedelta(hours=3)
+            return dt
         except ValueError:
             # Fallback to current time if parsing fails
-            return datetime.utcnow()
+            from datetime import timedelta
+            return datetime.utcnow() + timedelta(hours=3)
 
     def _extract_vlan(self, line: str) -> Optional[int]:
         """Extract VLAN ID from log line if present."""

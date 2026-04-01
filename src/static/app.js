@@ -384,8 +384,18 @@ async function loadLogs() {
         }
         
         container.innerHTML = logs.map(l => {
-            const time = new Date(l.timestamp).toLocaleTimeString();
-            const date = new Date(l.timestamp).toLocaleDateString();
+            // Parse timestamp and format for GMT+3
+            const timestamp = new Date(l.timestamp);
+            const timeStr = timestamp.toLocaleTimeString('en-US', { 
+                hour: '2-digit', 
+                minute: '2-digit', 
+                second: '2-digit',
+                timeZone: 'Europe/Moscow'  // GMT+3
+            });
+            const dateStr = timestamp.toLocaleDateString('en-US', {
+                timeZone: 'Europe/Moscow'  // GMT+3
+            });
+            
             const isSuccess = l.outcome === 'success';
             const icon = isSuccess ? '✓' : '✗';
             const vlanInfo = l.vlan_id ? ` • VLAN ${l.vlan_id}` : '';
@@ -396,12 +406,12 @@ async function loadLogs() {
                     <div class="log-icon">${icon}</div>
                     <div class="log-content">
                         <div class="log-main">
-                            <span class="log-time">${time}</span>
+                            <span class="log-time">${timeStr}</span>
                             <span class="log-mac">${l.client_mac}</span>
                             <span class="log-status">${isSuccess ? 'ACCEPT' : 'REJECT'}${vlanInfo}${policyInfo}</span>
                         </div>
                         <div class="log-meta">
-                            <span class="log-date">${date}</span>
+                            <span class="log-date">${dateStr}</span>
                             <span class="log-device">Device: ${l.device_id}</span>
                         </div>
                     </div>

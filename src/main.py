@@ -16,7 +16,6 @@ from src.log_manager import Log_Manager
 from src.freeradius_config_generator import FreeRADIUSConfigGenerator
 from src.freeradius_log_parser import FreeRADIUSLogParser
 from src.api import create_app
-from src.migrate_json_to_db import migrate_all
 
 
 def _log_parser_thread(log_parser: FreeRADIUSLogParser) -> None:
@@ -47,10 +46,6 @@ def main() -> int:
         logger = logging.getLogger(__name__)
         
         logger.info("Starting RADIUS server...")
-        
-        # Run migration from JSON to database
-        logger.info("Checking for data migration...")
-        migrate_all()
         
         # Initialize managers
         device_manager = Device_Manager()
