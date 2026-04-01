@@ -70,7 +70,9 @@ class Log_Manager:
             created_at=now,
         )
         self._logs.append(log)
-        self._save_data()
+        # Save individual log entry to database
+        from src.db_persistence import LogPersistence as DBLogPersistence
+        DBLogPersistence.save_log(log)
         return log
 
     def list_logs(self) -> List[AuthenticationLog]:
