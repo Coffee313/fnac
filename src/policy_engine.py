@@ -41,8 +41,8 @@ class Policy_Engine:
     """
 
     def __init__(self) -> None:
-        self._policies: Dict[str, MABPolicy] = {}          # keyed by policy id
-        self._group_index: Dict[str, str] = {}             # client_group_id -> policy id
+        self._policies: Dict[str, MABPolicy] = {}          # keyed by policy name
+        self._group_index: Dict[str, str] = {}             # client_group_name -> policy name
         self._load_data()
 
     # ------------------------------------------------------------------
@@ -52,8 +52,8 @@ class Policy_Engine:
     def _load_data(self) -> None:
         try:
             policies = PolicyPersistence.load()
-            self._policies = {p.id: p for p in policies}
-            self._group_index = {p.client_group_id: p.id for p in policies}
+            self._policies = {p.name: p for p in policies}
+            self._group_index = {p.client_group_name: p.name for p in policies}
         except Exception:
             self._policies = {}
             self._group_index = {}
@@ -75,8 +75,8 @@ class Policy_Engine:
 
     def create_policy(
         self,
-        policy_id: str,
-        client_group_id: str,
+        policy_name: str,
+        client_group_name: str,
         decision: PolicyDecision,
         vlan_id: Optional[int] = None,
     ) -> MABPolicy:
@@ -84,29 +84,29 @@ class Policy_Engine:
         Create a new MAB policy.
 
         Raises:
-            DuplicatePolicyError: If a policy already exists for client_group_id
+            DuplicatePolicyError: If a policy already exists for client_group_name
             InvalidVLANError: If decision is ACCEPT_WITH_VLAN and vlan_id is invalid
         """
-        if client_group_id in self._group_index:
+        if client_group_name in self._group_index:
             raise DuplicatePolicyError(
-                f"A policy already exists for client group '{client_group_id}'"
+                f"A policy already exists for client group '{client_group_name}'"
             )
         self._validate_vlan(decision, vlan_id)
 
         policy = MABPolicy(
-            id=policy_id,
-            client_group_id=client_group_id,
+            name=policy_name,
+            client_group_name=client_group_name,
             decision=decision,
             vlan_id=vlan_id if decision == PolicyDecision.ACCEPT_WITH_VLAN else None,
         )
-        self._policies[policy_id] = policy
-        self._group_index[client_group_id] = policy_id
+        self._policies[policy_name] = policy
+        self._group_index[client_group_name] = policy_name
         self._save_data()
         return policy
 
     def update_policy(
         self,
-        policy_id: str,
+        policy_name: str,
         decision: Optional[PolicyDecision] = None,
         vlan_id: Optional[int] = None,
     ) -> MABPolicy:
@@ -114,13 +114,13 @@ class Policy_Engine:
         Update an existing policy's decision and/or VLAN ID.
 
         Raises:
-            PolicyNotFoundError: If policy_id does not exist
+            PolicyNotFoundError: If policy_name does not exist
             InvalidVLANError: If resulting decision is ACCEPT_WITH_VLAN and vlan_id invalid
         """
-        if policy_id not in self._policies:
-            raise PolicyNotFoundError(f"Policy '{policy_id}' not found")
+        if policy_name not in self._policies:
+            raise PolicyNotFoundError(f"Policy '{policy_name}' not found")
 
-        policy = self._policies[policy_id]
+        policy = self._policies[policy_name]
         new_decision = decision if decision is not None else policy.decision
         new_vlan = vlan_id if vlan_id is not None else policy.vlan_id
 
@@ -135,39 +135,39 @@ class Policy_Engine:
         self._save_data()
         return policy
 
-    def delete_policy(self, policy_id: str) -> None:
+    def delete_policy(self, policy_name: str) -> None:
         """
         Delete a policy.
 
         Raises:
-            PolicyNotFoundError: If policy_id does not exist
+            PolicyNotFoundError: If policy_name does not exist
         """
-        if policy_id not in self._policies:
-            raise PolicyNotFoundError(f"Policy '{policy_id}' not found")
+        if policy_name not in self._policies:
+            raise PolicyNotFoundError(f"Policy '{policy_name}' not found")
 
-        policy = self._policies.pop(policy_id)
-        self._group_index.pop(policy.client_group_id, None)
+        policy = self._policies.pop(policy_name)
+        self._group_index.pop(policy.client_group_name, None)
         self._save_data()
 
-    def get_policy(self, policy_id: str) -> Optional[MABPolicy]:
-        return self._policies.get(policy_id)
+    def get_policy(self, policy_name: str) -> Optional[MABPolicy]:
+        return self._policies.get(policy_name)
 
-    def get_policy_by_client_group(self, client_group_id: str) -> Optional[MABPolicy]:
-        pid = self._group_index.get(client_group_id)
-        return self._policies.get(pid) if pid else None
+    def get_policy_by_client_group(self, client_group_name: str) -> Optional[MABPolicy]:
+        pname = self._group_index.get(client_group_name)
+        return self._policies.get(pname) if pname else None
 
     def list_policies(self) -> List[MABPolicy]:
         return list(self._policies.values())
 
     def evaluate_policy(
-        self, client_group_id: str
+        self, client_group_name: str
     ) -> Tuple[PolicyDecision, Optional[int]]:
         """
         Evaluate the policy for a client group.
 
         Returns (decision, vlan_id). Defaults to (REJECT, None) if no policy exists.
         """
-        policy = self.get_policy_by_client_group(client_group_id)
+        policy = self.get_policy_by_client_group(client_group_name)
         if policy is None:
             return PolicyDecision.REJECT, None
         return policy.decision, policy.vlan_id

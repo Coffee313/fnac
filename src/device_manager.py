@@ -64,8 +64,8 @@ class Device_Manager:
         """Load devices and device groups from persistent storage."""
         try:
             devices, device_groups = DevicePersistence.load()
-            self._devices = {device.id: device for device in devices}
-            self._device_groups = {group.id: group for group in device_groups}
+            self._devices = {device.name: device for device in devices}
+            self._device_groups = {group.name: group for group in device_groups}
         except Exception:
             # If loading fails, start with empty state
             self._devices = {}
@@ -79,83 +79,83 @@ class Device_Manager:
     
     def create_device(
         self,
-        device_id: str,
+        name: str,
         ip_address: str,
         shared_secret: str,
-        device_group_id: str
+        device_group_name: str
     ) -> Device:
         """
         Create a new device with the specified attributes.
         
         Args:
-            device_id: Unique identifier for the device
+            name: Unique name for the device
             ip_address: IPv4 address of the device
             shared_secret: RADIUS shared secret for the device
-            device_group_id: ID of the device group to assign to
+            device_group_name: Name of the device group to assign to
             
         Returns:
             The created Device object
             
         Raises:
-            DuplicateDeviceError: If device_id already exists
-            DeviceGroupNotFoundError: If device_group_id does not exist
+            DuplicateDeviceError: If name already exists
+            DeviceGroupNotFoundError: If device_group_name does not exist
             ValueError: If ip_address or shared_secret are invalid
         """
-        if device_id in self._devices:
-            raise DuplicateDeviceError(f"Device with ID '{device_id}' already exists")
+        if name in self._devices:
+            raise DuplicateDeviceError(f"Device with name '{name}' already exists")
         
-        if device_group_id not in self._device_groups:
+        if device_group_name not in self._device_groups:
             raise DeviceGroupNotFoundError(
-                f"Device group with ID '{device_group_id}' does not exist"
+                f"Device group with name '{device_group_name}' does not exist"
             )
         
         # Device.__post_init__ will validate ip_address
         device = Device(
-            id=device_id,
+            name=name,
             ip_address=ip_address,
             shared_secret=shared_secret,
-            device_group_id=device_group_id
+            device_group_name=device_group_name
         )
         
-        self._devices[device_id] = device
+        self._devices[name] = device
         self._save_data()
         return device
     
     def update_device(
         self,
-        device_id: str,
+        name: str,
         ip_address: Optional[str] = None,
         shared_secret: Optional[str] = None,
-        device_group_id: Optional[str] = None
+        device_group_name: Optional[str] = None
     ) -> Device:
         """
         Update an existing device's attributes.
         
         Args:
-            device_id: ID of the device to update
+            name: Name of the device to update
             ip_address: New IPv4 address (optional)
             shared_secret: New shared secret (optional)
-            device_group_id: New device group ID (optional)
+            device_group_name: New device group name (optional)
             
         Returns:
             The updated Device object
             
         Raises:
-            DeviceNotFoundError: If device_id does not exist
-            DeviceGroupNotFoundError: If new device_group_id does not exist
+            DeviceNotFoundError: If name does not exist
+            DeviceGroupNotFoundError: If new device_group_name does not exist
             ValueError: If ip_address is invalid
         """
-        if device_id not in self._devices:
-            raise DeviceNotFoundError(f"Device with ID '{device_id}' not found")
+        if name not in self._devices:
+            raise DeviceNotFoundError(f"Device with name '{name}' not found")
         
-        device = self._devices[device_id]
+        device = self._devices[name]
         
-        if device_group_id is not None:
-            if device_group_id not in self._device_groups:
+        if device_group_name is not None:
+            if device_group_name not in self._device_groups:
                 raise DeviceGroupNotFoundError(
-                    f"Device group with ID '{device_group_id}' does not exist"
+                    f"Device group with name '{device_group_name}' does not exist"
                 )
-            device.device_group_id = device_group_id
+            device.device_group_name = device_group_name
         
         if ip_address is not None:
             # This will raise ValueError if invalid
@@ -172,33 +172,33 @@ class Device_Manager:
         self._save_data()
         return device
     
-    def delete_device(self, device_id: str) -> None:
+    def delete_device(self, name: str) -> None:
         """
         Delete a device from the system.
         
         Args:
-            device_id: ID of the device to delete
+            name: Name of the device to delete
             
         Raises:
-            DeviceNotFoundError: If device_id does not exist
+            DeviceNotFoundError: If name does not exist
         """
-        if device_id not in self._devices:
-            raise DeviceNotFoundError(f"Device with ID '{device_id}' not found")
+        if name not in self._devices:
+            raise DeviceNotFoundError(f"Device with name '{name}' not found")
         
-        del self._devices[device_id]
+        del self._devices[name]
         self._save_data()
     
-    def get_device(self, device_id: str) -> Optional[Device]:
+    def get_device(self, name: str) -> Optional[Device]:
         """
-        Retrieve a device by its ID.
+        Retrieve a device by its name.
         
         Args:
-            device_id: ID of the device to retrieve
+            name: Name of the device to retrieve
             
         Returns:
             The Device object if found, None otherwise
         """
-        return self._devices.get(device_id)
+        return self._devices.get(name)
     
     def get_device_by_ip(self, ip_address: str) -> Optional[Device]:
         """
@@ -224,70 +224,69 @@ class Device_Manager:
         """
         return list(self._devices.values())
     
-    def create_device_group(self, group_id: str, name: str) -> DeviceGroup:
+    def create_device_group(self, name: str) -> DeviceGroup:
         """
         Create a new device group.
         
         Args:
-            group_id: Unique identifier for the group
-            name: Human-readable name for the group
+            name: Unique name for the group
             
         Returns:
             The created DeviceGroup object
             
         Raises:
-            DuplicateDeviceGroupError: If group_id already exists
+            DuplicateDeviceGroupError: If name already exists
         """
-        if group_id in self._device_groups:
+        if name in self._device_groups:
             raise DuplicateDeviceGroupError(
-                f"Device group with ID '{group_id}' already exists"
+                f"Device group with name '{name}' already exists"
             )
         
-        group = DeviceGroup(id=group_id, name=name)
-        self._device_groups[group_id] = group
+        group = DeviceGroup(name=name)
+        self._device_groups[name] = group
         self._save_data()
         return group
     
-    def delete_device_group(self, group_id: str) -> None:
+    def delete_device_group(self, name: str) -> None:
         """
         Delete a device group from the system.
         
         Raises an error if any devices are assigned to this group.
         
         Args:
-            group_id: ID of the group to delete
+            name: Name of the group to delete
             
         Raises:
-            DeviceGroupNotFoundError: If group_id does not exist
+            DeviceGroupNotFoundError: If name does not exist
             ReferentialIntegrityError: If devices are assigned to this group
         """
-        if group_id not in self._device_groups:
+        if name not in self._device_groups:
             raise DeviceGroupNotFoundError(
-                f"Device group with ID '{group_id}' not found"
+                f"Device group with name '{name}' not found"
             )
         
         # Check for devices assigned to this group
         for device in self._devices.values():
-            if device.device_group_id == group_id:
+            if device.device_group_name == name:
                 raise ReferentialIntegrityError(
-                    f"Cannot delete device group '{group_id}' because it has "
+                    f"Cannot delete device group '{name}' because it has "
                     f"assigned devices. Remove all devices from this group first."
                 )
         
-        del self._device_groups[group_id]
+        del self._device_groups[name]
         self._save_data()
     
-    def get_device_group(self, group_id: str) -> Optional[DeviceGroup]:
+    def get_device_group(self, name: str) -> Optional[DeviceGroup]:
         """
-        Retrieve a device group by its ID.
+        Retrieve a device group by its name.
         
         Args:
-            group_id: ID of the group to retrieve
+            name: Name of the group to retrieve
             
         Returns:
             The DeviceGroup object if found, None otherwise
         """
-        return self._device_groups.get(group_id)
+        return self._device_groups.get(name)
     
     def list_device_groups(self) -> List[DeviceGroup]:
         """

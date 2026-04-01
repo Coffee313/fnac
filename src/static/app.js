@@ -45,18 +45,17 @@ async function loadDeviceGroups() {
         container.innerHTML = groups.map(g => `
             <div class="item">
                 <div class="item-info">
-                    <p><strong>ID:</strong> ${g.id}</p>
                     <p><strong>Name:</strong> ${g.name}</p>
                 </div>
                 <div class="item-actions">
-                    <button class="btn-delete" onclick="deleteDeviceGroup('${g.id}')">Delete</button>
+                    <button class="btn-delete" onclick="deleteDeviceGroup('${g.name}')">Delete</button>
                 </div>
             </div>
         `).join('');
         
         const select = document.getElementById('deviceGroup');
         select.innerHTML = '<option value="">Select Device Group</option>' + 
-            groups.map(g => `<option value="${g.id}">${g.name}</option>`).join('');
+            groups.map(g => `<option value="${g.name}">${g.name}</option>`).join('');
     } catch (e) {
         showMessage('Error loading device groups', 'error');
     }
@@ -70,12 +69,12 @@ async function loadDevices() {
         container.innerHTML = devices.map(d => `
             <div class="item">
                 <div class="item-info">
-                    <p><strong>ID:</strong> ${d.id}</p>
+                    <p><strong>Name:</strong> ${d.name}</p>
                     <p><strong>IP:</strong> ${d.ip_address}</p>
-                    <p><strong>Group:</strong> ${d.device_group_id}</p>
+                    <p><strong>Group:</strong> ${d.device_group_name}</p>
                 </div>
                 <div class="item-actions">
-                    <button class="btn-delete" onclick="deleteDevice('${d.id}')">Delete</button>
+                    <button class="btn-delete" onclick="deleteDevice('${d.name}')">Delete</button>
                 </div>
             </div>
         `).join('');
@@ -86,13 +85,12 @@ async function loadDevices() {
 
 document.getElementById('deviceGroupForm').addEventListener('submit', async (e) => {
     e.preventDefault();
-    const id = document.getElementById('groupId').value;
     const name = document.getElementById('groupName').value;
     try {
         const res = await fetch(`${API_URL}/device-groups`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ id, name })
+            body: JSON.stringify({ name })
         });
         if (res.ok) {
             showMessage('Device group created');
@@ -109,15 +107,15 @@ document.getElementById('deviceGroupForm').addEventListener('submit', async (e) 
 
 document.getElementById('deviceForm').addEventListener('submit', async (e) => {
     e.preventDefault();
-    const id = document.getElementById('deviceId').value;
+    const name = document.getElementById('deviceId').value;
     const ip_address = document.getElementById('deviceIp').value;
     const shared_secret = document.getElementById('deviceSecret').value;
-    const device_group_id = document.getElementById('deviceGroup').value;
+    const device_group_name = document.getElementById('deviceGroup').value;
     try {
         const res = await fetch(`${API_URL}/devices`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ id, ip_address, shared_secret, device_group_id })
+            body: JSON.stringify({ name, ip_address, shared_secret, device_group_name })
         });
         if (res.ok) {
             showMessage('Device created');
@@ -132,10 +130,10 @@ document.getElementById('deviceForm').addEventListener('submit', async (e) => {
     }
 });
 
-async function deleteDevice(id) {
+async function deleteDevice(name) {
     if (!confirm('Delete this device?')) return;
     try {
-        const res = await fetch(`${API_URL}/devices/${id}`, { method: 'DELETE' });
+        const res = await fetch(`${API_URL}/devices/${name}`, { method: 'DELETE' });
         if (res.ok) {
             showMessage('Device deleted');
             await loadDevices();
@@ -147,10 +145,10 @@ async function deleteDevice(id) {
     }
 }
 
-async function deleteDeviceGroup(id) {
+async function deleteDeviceGroup(name) {
     if (!confirm('Delete this group?')) return;
     try {
-        const res = await fetch(`${API_URL}/device-groups/${id}`, { method: 'DELETE' });
+        const res = await fetch(`${API_URL}/device-groups/${name}`, { method: 'DELETE' });
         if (res.ok) {
             showMessage('Group deleted');
             await loadDeviceGroups();
@@ -172,18 +170,17 @@ async function loadClientGroups() {
         container.innerHTML = groups.map(g => `
             <div class="item">
                 <div class="item-info">
-                    <p><strong>ID:</strong> ${g.id}</p>
                     <p><strong>Name:</strong> ${g.name}</p>
                 </div>
                 <div class="item-actions">
-                    <button class="btn-delete" onclick="deleteClientGroup('${g.id}')">Delete</button>
+                    <button class="btn-delete" onclick="deleteClientGroup('${g.name}')">Delete</button>
                 </div>
             </div>
         `).join('');
         
         const select = document.getElementById('clientGroup');
         select.innerHTML = '<option value="">Select Client Group</option>' + 
-            groups.map(g => `<option value="${g.id}">${g.name}</option>`).join('');
+            groups.map(g => `<option value="${g.name}">${g.name}</option>`).join('');
     } catch (e) {
         showMessage('Error loading client groups', 'error');
     }
@@ -198,7 +195,7 @@ async function loadClients() {
             <div class="item">
                 <div class="item-info">
                     <p><strong>MAC:</strong> ${c.mac_address}</p>
-                    <p><strong>Group:</strong> ${c.client_group_id}</p>
+                    <p><strong>Group:</strong> ${c.client_group_name}</p>
                 </div>
                 <div class="item-actions">
                     <button class="btn-delete" onclick="deleteClient('${c.mac_address}')">Delete</button>
@@ -212,13 +209,12 @@ async function loadClients() {
 
 document.getElementById('clientGroupForm').addEventListener('submit', async (e) => {
     e.preventDefault();
-    const id = document.getElementById('cGroupId').value;
     const name = document.getElementById('cGroupName').value;
     try {
         const res = await fetch(`${API_URL}/client-groups`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ id, name })
+            body: JSON.stringify({ name })
         });
         if (res.ok) {
             showMessage('Client group created');
@@ -236,12 +232,12 @@ document.getElementById('clientGroupForm').addEventListener('submit', async (e) 
 document.getElementById('clientForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     const mac_address = document.getElementById('clientMac').value;
-    const client_group_id = document.getElementById('clientGroup').value;
+    const client_group_name = document.getElementById('clientGroup').value;
     try {
         const res = await fetch(`${API_URL}/clients`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ mac_address, client_group_id })
+            body: JSON.stringify({ mac_address, client_group_name })
         });
         if (res.ok) {
             showMessage('Client created');
@@ -271,10 +267,10 @@ async function deleteClient(mac) {
     }
 }
 
-async function deleteClientGroup(id) {
+async function deleteClientGroup(name) {
     if (!confirm('Delete this group?')) return;
     try {
-        const res = await fetch(`${API_URL}/client-groups/${id}`, { method: 'DELETE' });
+        const res = await fetch(`${API_URL}/client-groups/${name}`, { method: 'DELETE' });
         if (res.ok) {
             showMessage('Group deleted');
             await loadClientGroups();
@@ -294,7 +290,7 @@ async function loadClientGroupsForPolicy() {
         const groups = await res.json();
         const select = document.getElementById('policyClientGroup');
         select.innerHTML = '<option value="">Select Client Group</option>' + 
-            groups.map(g => `<option value="${g.id}">${g.name}</option>`).join('');
+            groups.map(g => `<option value="${g.name}">${g.name}</option>`).join('');
     } catch (e) {
         showMessage('Error loading client groups', 'error');
     }
@@ -308,13 +304,13 @@ async function loadPolicies() {
         container.innerHTML = policies.map(p => `
             <div class="item">
                 <div class="item-info">
-                    <p><strong>ID:</strong> ${p.id}</p>
-                    <p><strong>Client Group:</strong> ${p.client_group_id}</p>
+                    <p><strong>Name:</strong> ${p.name}</p>
+                    <p><strong>Client Group:</strong> ${p.client_group_name}</p>
                     <p><strong>Decision:</strong> <span class="status-badge status-${p.decision.toLowerCase()}">${p.decision}</span></p>
                     ${p.vlan_id ? `<p><strong>VLAN:</strong> ${p.vlan_id}</p>` : ''}
                 </div>
                 <div class="item-actions">
-                    <button class="btn-delete" onclick="deletePolicy('${p.id}')">Delete</button>
+                    <button class="btn-delete" onclick="deletePolicy('${p.name}')">Delete</button>
                 </div>
             </div>
         `).join('');
@@ -325,15 +321,15 @@ async function loadPolicies() {
 
 document.getElementById('policyForm').addEventListener('submit', async (e) => {
     e.preventDefault();
-    const id = document.getElementById('policyId').value;
-    const client_group_id = document.getElementById('policyClientGroup').value;
+    const name = document.getElementById('policyId').value;
+    const client_group_name = document.getElementById('policyClientGroup').value;
     const decision = document.getElementById('policyDecision').value;
     const vlan_id = document.getElementById('policyVlan').value ? parseInt(document.getElementById('policyVlan').value) : null;
     try {
         const res = await fetch(`${API_URL}/policies`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ id, client_group_id, decision, vlan_id })
+            body: JSON.stringify({ name, client_group_name, decision, vlan_id })
         });
         if (res.ok) {
             showMessage('Policy created');
@@ -348,10 +344,10 @@ document.getElementById('policyForm').addEventListener('submit', async (e) => {
     }
 });
 
-async function deletePolicy(id) {
+async function deletePolicy(name) {
     if (!confirm('Delete this policy?')) return;
     try {
-        const res = await fetch(`${API_URL}/policies/${id}`, { method: 'DELETE' });
+        const res = await fetch(`${API_URL}/policies/${name}`, { method: 'DELETE' });
         if (res.ok) {
             showMessage('Policy deleted');
             await loadPolicies();
@@ -401,7 +397,7 @@ async function loadLogs() {
             const isSuccess = l.outcome === 'success';
             const icon = isSuccess ? '✓' : '✗';
             const vlanInfo = l.vlan_id ? ` • VLAN ${l.vlan_id}` : '';
-            const policyInfo = l.policy_decision ? ` • ${l.policy_decision.replace(/_/g, ' ')}` : '';
+            const policyInfo = l.policy_name ? ` • Policy: ${l.policy_name}` : '';
             
             return `
                 <div class="log-item ${isSuccess ? 'log-success' : 'log-failure'}">

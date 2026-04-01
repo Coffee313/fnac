@@ -36,7 +36,7 @@ class DuplicateClientError(ClientManagerError):
 
 
 class DuplicateClientGroupError(ClientManagerError):
-    """Raised when attempting to create a client group with a duplicate ID."""
+    """Raised when attempting to create a client group with a duplicate name."""
     pass
 
 
@@ -72,7 +72,7 @@ class Client_Manager:
         try:
             clients, client_groups = ClientPersistence.load()
             self._clients = {client.mac_address: client for client in clients}
-            self._client_groups = {group.id: group for group in client_groups}
+            self._client_groups = {group.name: group for group in client_groups}
         except Exception:
             # If loading fails, start with empty state
             self._clients = {}
@@ -106,14 +106,14 @@ class Client_Manager:
     def create_client(
         self,
         mac_address: str,
-        client_group_id: str
+        client_group_name: str
     ) -> Client:
         """
         Create a new client with the specified MAC address and group assignment.
         
         Args:
             mac_address: MAC address of the client (format: XX:XX:XX:XX:XX:XX)
-            client_group_id: ID of the client group to assign to
+            client_group_name: Name of the client group to assign to
             
         Returns:
             The created Client object
@@ -121,7 +121,7 @@ class Client_Manager:
         Raises:
             InvalidMACAddressError: If mac_address format is invalid
             DuplicateClientError: If mac_address already exists
-            ClientGroupNotFoundError: If client_group_id does not exist
+            ClientGroupNotFoundError: If client_group_name does not exist
         """
         # Validate MAC address format
         try:
@@ -134,14 +134,14 @@ class Client_Manager:
                 f"Client with MAC address '{mac_address}' already exists"
             )
         
-        if client_group_id not in self._client_groups:
+        if client_group_name not in self._client_groups:
             raise ClientGroupNotFoundError(
-                f"Client group with ID '{client_group_id}' does not exist"
+                f"Client group with name '{client_group_name}' does not exist"
             )
         
         client = Client(
             mac_address=mac_address,
-            client_group_id=client_group_id
+            client_group_name=client_group_name
         )
         
         self._clients[mac_address] = client
@@ -151,21 +151,21 @@ class Client_Manager:
     def update_client(
         self,
         mac_address: str,
-        client_group_id: Optional[str] = None
+        client_group_name: Optional[str] = None
     ) -> Client:
         """
         Update an existing client's group assignment.
         
         Args:
             mac_address: MAC address of the client to update
-            client_group_id: New client group ID (optional)
+            client_group_name: New client group name (optional)
             
         Returns:
             The updated Client object
             
         Raises:
             ClientNotFoundError: If mac_address does not exist
-            ClientGroupNotFoundError: If new client_group_id does not exist
+            ClientGroupNotFoundError: If new client_group_name does not exist
         """
         if mac_address not in self._clients:
             raise ClientNotFoundError(
@@ -174,12 +174,12 @@ class Client_Manager:
         
         client = self._clients[mac_address]
         
-        if client_group_id is not None:
-            if client_group_id not in self._client_groups:
+        if client_group_name is not None:
+            if client_group_name not in self._client_groups:
                 raise ClientGroupNotFoundError(
-                    f"Client group with ID '{client_group_id}' does not exist"
+                    f"Client group with name '{client_group_name}' does not exist"
                 )
-            client.client_group_id = client_group_id
+            client.client_group_name = client_group_name
         
         from datetime import datetime
         client.updated_at = datetime.utcnow()
@@ -226,70 +226,69 @@ class Client_Manager:
         """
         return list(self._clients.values())
     
-    def create_client_group(self, group_id: str, name: str) -> ClientGroup:
+    def create_client_group(self, name: str) -> ClientGroup:
         """
         Create a new client group.
         
         Args:
-            group_id: Unique identifier for the group
-            name: Human-readable name for the group
+            name: Unique name for the group
             
         Returns:
             The created ClientGroup object
             
         Raises:
-            DuplicateClientGroupError: If group_id already exists
+            DuplicateClientGroupError: If name already exists
         """
-        if group_id in self._client_groups:
+        if name in self._client_groups:
             raise DuplicateClientGroupError(
-                f"Client group with ID '{group_id}' already exists"
+                f"Client group with name '{name}' already exists"
             )
         
-        group = ClientGroup(id=group_id, name=name)
-        self._client_groups[group_id] = group
+        group = ClientGroup(name=name)
+        self._client_groups[name] = group
         self._save_data()
         return group
     
-    def delete_client_group(self, group_id: str) -> None:
+    def delete_client_group(self, name: str) -> None:
         """
         Delete a client group from the system.
         
         Raises an error if any clients are assigned to this group.
         
         Args:
-            group_id: ID of the group to delete
+            name: Name of the group to delete
             
         Raises:
-            ClientGroupNotFoundError: If group_id does not exist
+            ClientGroupNotFoundError: If name does not exist
             ReferentialIntegrityError: If clients are assigned to this group
         """
-        if group_id not in self._client_groups:
+        if name not in self._client_groups:
             raise ClientGroupNotFoundError(
-                f"Client group with ID '{group_id}' not found"
+                f"Client group with name '{name}' not found"
             )
         
         # Check for clients assigned to this group
         for client in self._clients.values():
-            if client.client_group_id == group_id:
+            if client.client_group_name == name:
                 raise ReferentialIntegrityError(
-                    f"Cannot delete client group '{group_id}' because it has "
+                    f"Cannot delete client group '{name}' because it has "
                     f"assigned clients. Remove all clients from this group first."
                 )
         
-        del self._client_groups[group_id]
+        del self._client_groups[name]
         self._save_data()
     
-    def get_client_group(self, group_id: str) -> Optional[ClientGroup]:
+    def get_client_group(self, name: str) -> Optional[ClientGroup]:
         """
-        Retrieve a client group by its ID.
+        Retrieve a client group by its name.
         
         Args:
-            group_id: ID of the group to retrieve
+            name: Name of the group to retrieve
             
         Returns:
             The ClientGroup object if found, None otherwise
         """
-        return self._client_groups.get(group_id)
+        return self._client_groups.get(name)
     
     def list_client_groups(self) -> List[ClientGroup]:
         """

@@ -37,8 +37,7 @@ class Database:
         # Device Groups table
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS device_groups (
-                id TEXT PRIMARY KEY,
-                name TEXT NOT NULL,
+                name TEXT PRIMARY KEY,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
@@ -47,21 +46,20 @@ class Database:
         # Devices table
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS devices (
-                id TEXT PRIMARY KEY,
+                name TEXT PRIMARY KEY,
                 ip_address TEXT NOT NULL UNIQUE,
                 shared_secret TEXT NOT NULL,
-                device_group_id TEXT NOT NULL,
+                device_group_name TEXT NOT NULL,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (device_group_id) REFERENCES device_groups(id)
+                FOREIGN KEY (device_group_name) REFERENCES device_groups(name)
             )
         """)
 
         # Client Groups table
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS client_groups (
-                id TEXT PRIMARY KEY,
-                name TEXT NOT NULL,
+                name TEXT PRIMARY KEY,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
@@ -71,23 +69,23 @@ class Database:
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS clients (
                 mac_address TEXT PRIMARY KEY,
-                client_group_id TEXT NOT NULL,
+                client_group_name TEXT NOT NULL,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (client_group_id) REFERENCES client_groups(id)
+                FOREIGN KEY (client_group_name) REFERENCES client_groups(name)
             )
         """)
 
         # Policies table
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS policies (
-                id TEXT PRIMARY KEY,
-                client_group_id TEXT NOT NULL UNIQUE,
+                name TEXT PRIMARY KEY,
+                client_group_name TEXT NOT NULL UNIQUE,
                 decision TEXT NOT NULL,
                 vlan_id INTEGER,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (client_group_id) REFERENCES client_groups(id)
+                FOREIGN KEY (client_group_name) REFERENCES client_groups(name)
             )
         """)
 

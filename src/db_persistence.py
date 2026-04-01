@@ -35,10 +35,10 @@ class DevicePersistence:
         devices = []
         for row in rows:
             devices.append(Device(
-                id=row['id'],
+                name=row['name'],
                 ip_address=row['ip_address'],
                 shared_secret=row['shared_secret'],
-                device_group_id=row['device_group_id'],
+                device_group_name=row['device_group_name'],
                 created_at=datetime.fromisoformat(row['created_at']),
                 updated_at=datetime.fromisoformat(row['updated_at']),
             ))
@@ -57,9 +57,9 @@ class DevicePersistence:
         # Insert new devices
         for device in devices:
             cursor.execute("""
-                INSERT INTO devices (id, ip_address, shared_secret, device_group_id, created_at, updated_at)
+                INSERT INTO devices (name, ip_address, shared_secret, device_group_name, created_at, updated_at)
                 VALUES (?, ?, ?, ?, ?, ?)
-            """, (device.id, device.ip_address, device.shared_secret, device.device_group_id,
+            """, (device.name, device.ip_address, device.shared_secret, device.device_group_name,
                   device.created_at.isoformat(), device.updated_at.isoformat()))
         
         conn.commit()
@@ -79,7 +79,6 @@ class DevicePersistence:
         groups = []
         for row in rows:
             groups.append(DeviceGroup(
-                id=row['id'],
                 name=row['name'],
                 created_at=datetime.fromisoformat(row['created_at']),
                 updated_at=datetime.fromisoformat(row['updated_at']),
@@ -99,9 +98,9 @@ class DevicePersistence:
         # Insert new groups
         for group in groups:
             cursor.execute("""
-                INSERT INTO device_groups (id, name, created_at, updated_at)
-                VALUES (?, ?, ?, ?)
-            """, (group.id, group.name, group.created_at.isoformat(), group.updated_at.isoformat()))
+                INSERT INTO device_groups (name, created_at, updated_at)
+                VALUES (?, ?, ?)
+            """, (group.name, group.created_at.isoformat(), group.updated_at.isoformat()))
         
         conn.commit()
         conn.close()
@@ -125,7 +124,7 @@ class ClientPersistence:
         for row in rows:
             clients.append(Client(
                 mac_address=row['mac_address'],
-                client_group_id=row['client_group_id'],
+                client_group_name=row['client_group_name'],
                 created_at=datetime.fromisoformat(row['created_at']),
                 updated_at=datetime.fromisoformat(row['updated_at']),
             ))
@@ -144,9 +143,9 @@ class ClientPersistence:
         # Insert new clients
         for client in clients:
             cursor.execute("""
-                INSERT INTO clients (mac_address, client_group_id, created_at, updated_at)
+                INSERT INTO clients (mac_address, client_group_name, created_at, updated_at)
                 VALUES (?, ?, ?, ?)
-            """, (client.mac_address, client.client_group_id,
+            """, (client.mac_address, client.client_group_name,
                   client.created_at.isoformat(), client.updated_at.isoformat()))
         
         conn.commit()
@@ -166,7 +165,6 @@ class ClientPersistence:
         groups = []
         for row in rows:
             groups.append(ClientGroup(
-                id=row['id'],
                 name=row['name'],
                 created_at=datetime.fromisoformat(row['created_at']),
                 updated_at=datetime.fromisoformat(row['updated_at']),
@@ -186,9 +184,9 @@ class ClientPersistence:
         # Insert new groups
         for group in groups:
             cursor.execute("""
-                INSERT INTO client_groups (id, name, created_at, updated_at)
-                VALUES (?, ?, ?, ?)
-            """, (group.id, group.name, group.created_at.isoformat(), group.updated_at.isoformat()))
+                INSERT INTO client_groups (name, created_at, updated_at)
+                VALUES (?, ?, ?)
+            """, (group.name, group.created_at.isoformat(), group.updated_at.isoformat()))
         
         conn.commit()
         conn.close()
@@ -211,8 +209,8 @@ class PolicyPersistence:
         policies = []
         for row in rows:
             policies.append(MABPolicy(
-                id=row['id'],
-                client_group_id=row['client_group_id'],
+                name=row['name'],
+                client_group_name=row['client_group_name'],
                 decision=PolicyDecision(row['decision']),
                 vlan_id=row['vlan_id'],
                 created_at=datetime.fromisoformat(row['created_at']),
@@ -233,9 +231,9 @@ class PolicyPersistence:
         # Insert new policies
         for policy in policies:
             cursor.execute("""
-                INSERT INTO policies (id, client_group_id, decision, vlan_id, created_at, updated_at)
+                INSERT INTO policies (name, client_group_name, decision, vlan_id, created_at, updated_at)
                 VALUES (?, ?, ?, ?, ?, ?)
-            """, (policy.id, policy.client_group_id, policy.decision.value, policy.vlan_id,
+            """, (policy.name, policy.client_group_name, policy.decision.value, policy.vlan_id,
                   policy.created_at.isoformat(), policy.updated_at.isoformat()))
         
         conn.commit()

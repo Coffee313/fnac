@@ -82,10 +82,10 @@ class AuthenticationOutcome(Enum):
 @dataclass
 class Device:
     """Represents a network device that sends RADIUS requests."""
-    id: str
+    name: str
     ip_address: str
     shared_secret: str
-    device_group_id: str
+    device_group_name: str
     created_at: datetime = field(default_factory=datetime.utcnow)
     updated_at: datetime = field(default_factory=datetime.utcnow)
     
@@ -97,7 +97,6 @@ class Device:
 @dataclass
 class DeviceGroup:
     """Represents a logical collection of devices."""
-    id: str
     name: str
     created_at: datetime = field(default_factory=datetime.utcnow)
     updated_at: datetime = field(default_factory=datetime.utcnow)
@@ -107,7 +106,7 @@ class DeviceGroup:
 class Client:
     """Represents an endpoint device identified by MAC address."""
     mac_address: str
-    client_group_id: str
+    client_group_name: str
     created_at: datetime = field(default_factory=datetime.utcnow)
     updated_at: datetime = field(default_factory=datetime.utcnow)
     
@@ -119,7 +118,6 @@ class Client:
 @dataclass
 class ClientGroup:
     """Represents a logical collection of clients."""
-    id: str
     name: str
     created_at: datetime = field(default_factory=datetime.utcnow)
     updated_at: datetime = field(default_factory=datetime.utcnow)
@@ -128,8 +126,8 @@ class ClientGroup:
 @dataclass
 class MABPolicy:
     """Represents a policy that maps client groups to authentication decisions."""
-    id: str
-    client_group_id: str
+    name: str
+    client_group_name: str
     decision: PolicyDecision
     vlan_id: Optional[int] = None
     created_at: datetime = field(default_factory=datetime.utcnow)
