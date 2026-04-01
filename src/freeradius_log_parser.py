@@ -21,6 +21,7 @@ FREERADIUS_LOG_FILE = "/var/log/freeradius/radius.log"
 
 # Regex patterns for parsing FreeRADIUS logs
 # Example: Wed Apr  1 18:48:36 2026 : Auth: (1) Login incorrect (pap: Cleartext password does not match "known good" password): [aa:aa:aa:aa:aa:aa] (from client test port 444)
+# Also handles: Wed Apr  1 19:03:26 2026 : Auth: (15) Login incorrect (No Auth-Type found: rejecting the user via Post-Auth-Type = Reject): [ecb1e035b860] (from client eltex port 2 cli ec-b1-e0-35-b8-60)
 AUTH_FAILURE_PATTERN = re.compile(
     r'(\w+ \w+\s+\d+\s+\d+:\d+:\d+\s+\d+)\s+:\s+Auth:\s+\(\d+\)\s+.*\[([a-fA-F0-9:]+)\]\s+\(from client (\S+)'
 )

@@ -112,7 +112,12 @@ class FreeRADIUSConfigGenerator:
     def generate_mab_users(self) -> str:
         """
         Generate mab_users file content from client and policy data.
-        Creates entries for both colon-separated and non-colon MAC formats.
+        Creates entries for multiple MAC address formats:
+        - Colon-separated lowercase (aa:bb:cc:dd:ee:ff)
+        - Colon-separated uppercase (AA:BB:CC:DD:EE:FF)
+        - No colons lowercase (aabbccddeeff)
+        - No colons uppercase (AABBCCDDEEFF)
+        
         For MAB, username and password are both the MAC address.
 
         Returns:
@@ -135,7 +140,10 @@ class FreeRADIUSConfigGenerator:
 
         for client in clients:
             mac = client.mac_address
-            mac_no_colons = mac.replace(":", "").lower()
+            mac_lower = mac.lower()
+            mac_upper = mac.upper()
+            mac_no_colons_lower = mac.replace(":", "").lower()
+            mac_no_colons_upper = mac.replace(":", "").upper()
             
             # Get policy for this client's group
             decision, vlan_id = self.policy_engine.evaluate_policy(
@@ -153,13 +161,23 @@ class FreeRADIUSConfigGenerator:
             elif decision == PolicyDecision.REJECT:
                 vlan_attrs = [f'    # REJECTED - will not authenticate']
 
-            # Entry with colons (standard format) - MAC is both username and password
-            lines.append(f'{mac} Cleartext-Password := "{mac}"')
+            # Entry with colons lowercase
+            lines.append(f'{mac_lower} Cleartext-Password := "{mac_lower}"')
             lines.extend(vlan_attrs)
             lines.append("")
 
-            # Entry without colons (for radtest and some clients)
-            lines.append(f'{mac_no_colons} Cleartext-Password := "{mac_no_colons}"')
+            # Entry with colons uppercase
+            lines.append(f'{mac_upper} Cleartext-Password := "{mac_upper}"')
+            lines.extend(vlan_attrs)
+            lines.append("")
+
+            # Entry without colons lowercase
+            lines.append(f'{mac_no_colons_lower} Cleartext-Password := "{mac_no_colons_lower}"')
+            lines.extend(vlan_attrs)
+            lines.append("")
+
+            # Entry without colons uppercase
+            lines.append(f'{mac_no_colons_upper} Cleartext-Password := "{mac_no_colons_upper}"')
             lines.extend(vlan_attrs)
             lines.append("")
 
