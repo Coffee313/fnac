@@ -377,17 +377,36 @@ async function loadLogs() {
         const res = await fetch(url);
         const logs = await res.json();
         const container = document.getElementById('logsContainer');
-        container.innerHTML = logs.map(l => `
-            <div class="item">
-                <div class="item-info">
-                    <p><strong>Time:</strong> ${new Date(l.timestamp).toLocaleString()}</p>
-                    <p><strong>MAC:</strong> ${l.client_mac}</p>
-                    <p><strong>Device:</strong> ${l.device_id}</p>
-                    <p><strong>Result:</strong> <span class="status-badge status-${l.outcome.toLowerCase()}">${l.outcome}</span></p>
-                    ${l.vlan_id ? `<p><strong>VLAN:</strong> ${l.vlan_id}</p>` : ''}
+        
+        if (logs.length === 0) {
+            container.innerHTML = '<div class="no-logs">No authentication logs yet</div>';
+            return;
+        }
+        
+        container.innerHTML = logs.map(l => {
+            const time = new Date(l.timestamp).toLocaleTimeString();
+            const date = new Date(l.timestamp).toLocaleDateString();
+            const isSuccess = l.outcome === 'SUCCESS';
+            const icon = isSuccess ? '✓' : '✗';
+            const vlanInfo = l.vlan_id ? ` • VLAN ${l.vlan_id}` : '';
+            
+            return `
+                <div class="log-item ${isSuccess ? 'log-success' : 'log-failure'}">
+                    <div class="log-icon">${icon}</div>
+                    <div class="log-content">
+                        <div class="log-main">
+                            <span class="log-time">${time}</span>
+                            <span class="log-mac">${l.client_mac}</span>
+                            <span class="log-status">${l.outcome}${vlanInfo}</span>
+                        </div>
+                        <div class="log-meta">
+                            <span class="log-date">${date}</span>
+                            <span class="log-device">Device: ${l.device_id}</span>
+                        </div>
+                    </div>
                 </div>
-            </div>
-        `).join('');
+            `;
+        }).join('');
     } catch (e) {
         showMessage('Error loading logs', 'error');
     }
@@ -396,6 +415,21 @@ async function loadLogs() {
 document.getElementById('filterForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     await loadLogs();
+});
+
+// Auto-refresh logs every 5 seconds when logs tab is active
+let logsRefreshInterval = null;
+
+document.querySelectorAll('.nav-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        // Clear existing interval
+        if (logsRefreshInterval) clearInterval(logsRefreshInterval);
+        
+        // Start auto-refresh if logs tab is selected
+        if (btn.dataset.tab === 'logs') {
+            logsRefreshInterval = setInterval(loadLogs, 5000);
+        }
+    });
 });
 
 // Initial load

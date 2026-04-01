@@ -61,24 +61,21 @@ class FreeRADIUSConfigGenerator:
             files_mod_path = os.path.join(self.config_dir, "mods-enabled", "files")
             files_mod_content = """files {
 \tusersfile = ${confdir}/mab_users
-\tacctusersfile = ${confdir}/acct_users
 \tcompat = 3.0
 }
 """
             
-            # Only write if it doesn't exist or is different
-            if not os.path.exists(files_mod_path):
-                with open(files_mod_path, "w") as f:
-                    f.write(files_mod_content)
-                logger.info(f"Created {files_mod_path}")
+            # Always write to ensure correct configuration
+            with open(files_mod_path, "w") as f:
+                f.write(files_mod_content)
+            logger.info(f"Updated {files_mod_path}")
             
-            # Create initial mab_users file if it doesn't exist
+            # Create/update mab_users file
             mab_users_path = os.path.join(self.config_dir, "mab_users")
-            if not os.path.exists(mab_users_path):
-                initial_content = self.generate_mab_users()
-                with open(mab_users_path, "w") as f:
-                    f.write(initial_content)
-                logger.info(f"Created initial {mab_users_path}")
+            initial_content = self.generate_mab_users()
+            with open(mab_users_path, "w") as f:
+                f.write(initial_content)
+            logger.info(f"Updated {mab_users_path}")
                 
         except PermissionError:
             logger.warning("Permission denied setting up FreeRADIUS MAB config. Run with sudo.")
