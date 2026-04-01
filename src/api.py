@@ -135,6 +135,8 @@ def create_app(
             "device_id": l.device_id,
             "outcome": l.outcome.value,
             "vlan_id": l.vlan_id,
+            "policy_decision": l.policy_decision,
+            "policy_name": l.policy_name,
             "created_at": l.created_at.isoformat(),
         }
 

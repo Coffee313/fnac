@@ -3,13 +3,14 @@ FreeRADIUS Log Parser
 
 Parses FreeRADIUS authentication logs and creates FNAC log entries.
 Monitors /var/log/freeradius/radius.log for authentication events.
+Deduplicates logs for the same MAC address within a time window to suppress retransmissions.
 """
 
 import os
 import re
 import logging
-from datetime import datetime
-from typing import Optional, Set, Tuple
+from datetime import datetime, timedelta
+from typing import Optional, Set, Dict, Tuple
 
 from src.log_manager import Log_Manager
 from src.models import AuthenticationOutcome
@@ -18,6 +19,9 @@ logger = logging.getLogger(__name__)
 
 # FreeRADIUS log file path
 FREERADIUS_LOG_FILE = "/var/log/freeradius/radius.log"
+
+# Deduplication window: suppress duplicate logs for same MAC within this many seconds
+DEDUP_WINDOW_SECONDS = 5
 
 # Regex patterns for parsing FreeRADIUS logs
 # Example: Wed Apr  1 18:48:36 2026 : Auth: (1) Login incorrect (pap: Cleartext password does not match "known good" password): [aa:aa:aa:aa:aa:aa] (from client test port 444)
@@ -43,6 +47,8 @@ class FreeRADIUSLogParser:
         self.log_file = log_file
         self.processed_lines: Set[str] = set()
         self.last_position = 0
+        # Track recent logs: (mac_address, outcome) -> timestamp
+        self.recent_logs: Dict[Tuple[str, str], datetime] = {}
 
     def parse_logs(self) -> int:
         """
@@ -67,11 +73,49 @@ class FreeRADIUSLogParser:
                 if self._process_line(line):
                     new_entries += 1
 
+            # Clean up old entries from dedup cache
+            self._cleanup_dedup_cache()
+
             return new_entries
 
         except Exception as e:
             logger.error(f"Error parsing FreeRADIUS logs: {e}")
             return 0
+
+    def _is_duplicate(self, mac_address: str, outcome: str) -> bool:
+        """
+        Check if this is a duplicate log entry within the dedup window.
+        
+        Returns:
+            True if this is a duplicate, False if it's a new event
+        """
+        key = (mac_address, outcome)
+        now = datetime.utcnow()
+        
+        if key in self.recent_logs:
+            last_time = self.recent_logs[key]
+            time_diff = (now - last_time).total_seconds()
+            
+            if time_diff < DEDUP_WINDOW_SECONDS:
+                # This is a duplicate within the window
+                return True
+        
+        # Not a duplicate, update the timestamp
+        self.recent_logs[key] = now
+        return False
+
+    def _cleanup_dedup_cache(self) -> None:
+        """Remove old entries from dedup cache."""
+        now = datetime.utcnow()
+        cutoff = now - timedelta(seconds=DEDUP_WINDOW_SECONDS * 2)
+        
+        keys_to_remove = [
+            key for key, timestamp in self.recent_logs.items()
+            if timestamp < cutoff
+        ]
+        
+        for key in keys_to_remove:
+            del self.recent_logs[key]
 
     def _process_line(self, line: str) -> bool:
         """
@@ -92,6 +136,11 @@ class FreeRADIUSLogParser:
             timestamp_str = success_match.group(1)
             mac_address = success_match.group(2)
             device_name = success_match.group(3)
+            
+            # Check for duplicates
+            if self._is_duplicate(mac_address, "success"):
+                logger.debug(f"Suppressed duplicate SUCCESS log for {mac_address}")
+                return False
             
             try:
                 timestamp = self._parse_timestamp(timestamp_str)
@@ -128,6 +177,11 @@ class FreeRADIUSLogParser:
             timestamp_str = failure_match.group(1)
             mac_address = failure_match.group(2)
             device_name = failure_match.group(3)
+            
+            # Check for duplicates
+            if self._is_duplicate(mac_address, "failure"):
+                logger.debug(f"Suppressed duplicate FAILURE log for {mac_address}")
+                return False
             
             try:
                 timestamp = self._parse_timestamp(timestamp_str)
