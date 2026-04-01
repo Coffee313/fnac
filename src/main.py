@@ -64,7 +64,11 @@ def main() -> int:
         logger.info("FreeRADIUS config generator initialized")
         
         # Create FreeRADIUS log parser
-        log_parser = FreeRADIUSLogParser(log_manager)
+        log_parser = FreeRADIUSLogParser(
+            log_manager,
+            client_manager=client_manager,
+            policy_engine=policy_engine,
+        )
         logger.info("FreeRADIUS log parser initialized")
         
         # Create Flask app

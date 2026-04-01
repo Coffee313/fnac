@@ -42,9 +42,12 @@ VLAN_PATTERN = re.compile(r'Tunnel-Private-Group-ID = "(\d+)"')
 class FreeRADIUSLogParser:
     """Parses FreeRADIUS logs and creates FNAC log entries."""
 
-    def __init__(self, log_manager: Log_Manager, log_file: str = FREERADIUS_LOG_FILE):
+    def __init__(self, log_manager: Log_Manager, log_file: str = FREERADIUS_LOG_FILE, 
+                 client_manager=None, policy_engine=None):
         self.log_manager = log_manager
         self.log_file = log_file
+        self.client_manager = client_manager
+        self.policy_engine = policy_engine
         self.processed_lines: Set[str] = set()
         self.last_position = 0
         # Track recent logs: (mac_address, outcome) -> timestamp
@@ -117,6 +120,32 @@ class FreeRADIUSLogParser:
         for key in keys_to_remove:
             del self.recent_logs[key]
 
+    def _get_policy_name(self, mac_address: str) -> Optional[str]:
+        """
+        Get the policy name for a MAC address.
+        
+        Returns:
+            Policy ID (name) if found, None otherwise
+        """
+        if not self.client_manager or not self.policy_engine:
+            return None
+        
+        try:
+            # Get client by MAC address
+            client = self.client_manager.get_client(mac_address)
+            if not client:
+                return None
+            
+            # Get policy by client group
+            policy = self.policy_engine.get_policy_by_client_group(client.client_group_id)
+            if not policy:
+                return None
+            
+            return policy.id
+        except Exception as e:
+            logger.debug(f"Error getting policy name for {mac_address}: {e}")
+            return None
+
     def _process_line(self, line: str) -> bool:
         """
         Process a single log line.
@@ -146,6 +175,7 @@ class FreeRADIUSLogParser:
                 timestamp = self._parse_timestamp(timestamp_str)
                 vlan_id = self._extract_vlan(line)
                 policy_decision = "accept_with_vlan" if vlan_id else "accept_without_vlan"
+                policy_name = self._get_policy_name(mac_address)
                 
                 # Create log entry with explicit timestamp via log manager
                 # The log manager will handle database persistence
@@ -156,6 +186,7 @@ class FreeRADIUSLogParser:
                     outcome=AuthenticationOutcome.SUCCESS,
                     vlan_id=vlan_id,
                     policy_decision=policy_decision,
+                    policy_name=policy_name,
                 )
                 # Override the timestamp to use the one from FreeRADIUS log
                 log.timestamp = timestamp
@@ -185,6 +216,7 @@ class FreeRADIUSLogParser:
             
             try:
                 timestamp = self._parse_timestamp(timestamp_str)
+                policy_name = self._get_policy_name(mac_address)
                 
                 # Create log entry with explicit timestamp via log manager
                 from src.models import AuthenticationOutcome
@@ -193,6 +225,7 @@ class FreeRADIUSLogParser:
                     device_id=device_name,
                     outcome=AuthenticationOutcome.FAILURE,
                     policy_decision="reject",
+                    policy_name=policy_name,
                 )
                 # Override the timestamp to use the one from FreeRADIUS log
                 log.timestamp = timestamp
