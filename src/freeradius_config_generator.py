@@ -142,17 +142,17 @@ class FreeRADIUSConfigGenerator:
                 client.client_group_id
             )
 
-            # Build user entry with proper indentation
+            # Build user entry with proper indentation (4 spaces)
             lines.append(f'{mac} Cleartext-Password := "mab"')
 
             # Add VLAN attributes if policy specifies VLAN assignment
             if decision == PolicyDecision.ACCEPT_WITH_VLAN and vlan_id:
-                lines.append("\tTunnel-Type = VLAN,")
-                lines.append("\tTunnel-Medium-Type = IEEE-802,")
-                lines.append(f'\tTunnel-Private-Group-ID = "{vlan_id}"')
+                lines.append(f'    Tunnel-Type = VLAN,')
+                lines.append(f'    Tunnel-Medium-Type = IEEE-802,')
+                lines.append(f'    Tunnel-Private-Group-ID = "{vlan_id}"')
             elif decision == PolicyDecision.REJECT:
                 # Rejected clients still need an entry but won't authenticate
-                lines.append("\t# REJECTED - will not authenticate")
+                lines.append(f'    # REJECTED - will not authenticate')
 
             lines.append("")
 
