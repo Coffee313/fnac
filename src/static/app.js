@@ -386,9 +386,10 @@ async function loadLogs() {
         container.innerHTML = logs.map(l => {
             const time = new Date(l.timestamp).toLocaleTimeString();
             const date = new Date(l.timestamp).toLocaleDateString();
-            const isSuccess = l.outcome === 'SUCCESS';
+            const isSuccess = l.outcome === 'success';
             const icon = isSuccess ? '✓' : '✗';
             const vlanInfo = l.vlan_id ? ` • VLAN ${l.vlan_id}` : '';
+            const policyInfo = l.policy_decision ? ` • ${l.policy_decision.replace(/_/g, ' ')}` : '';
             
             return `
                 <div class="log-item ${isSuccess ? 'log-success' : 'log-failure'}">
@@ -397,7 +398,7 @@ async function loadLogs() {
                         <div class="log-main">
                             <span class="log-time">${time}</span>
                             <span class="log-mac">${l.client_mac}</span>
-                            <span class="log-status">${l.outcome}${vlanInfo}</span>
+                            <span class="log-status">${isSuccess ? 'ACCEPT' : 'REJECT'}${vlanInfo}${policyInfo}</span>
                         </div>
                         <div class="log-meta">
                             <span class="log-date">${date}</span>
