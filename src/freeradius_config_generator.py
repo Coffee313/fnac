@@ -101,7 +101,7 @@ class FreeRADIUSConfigGenerator:
             lines.append(f"client {device.ip_address} {{")
             lines.append(f'    ipaddr = {device.ip_address}')
             lines.append(f'    secret = "{device.shared_secret}"')
-            lines.append(f'    shortname = "{device.id}"')
+            lines.append(f'    shortname = "{device.name}"')
             lines.append("    nastype = generic")
             lines.append("}")
             lines.append("")
@@ -146,7 +146,7 @@ class FreeRADIUSConfigGenerator:
             
             # Get policy for this client's group
             decision, vlan_id = self.policy_engine.evaluate_policy(
-                client.client_group_id
+                client.client_group_name
             )
 
             # Build VLAN attributes if needed
