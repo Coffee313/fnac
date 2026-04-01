@@ -61,7 +61,6 @@ class FreeRADIUSConfigGenerator:
             files_mod_path = os.path.join(self.config_dir, "mods-enabled", "files")
             files_mod_content = """files {
 \tusersfile = ${confdir}/mab_users
-\tcompat = 3.0
 }
 """
             
