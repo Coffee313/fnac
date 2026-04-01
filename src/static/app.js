@@ -384,17 +384,19 @@ async function loadLogs() {
         }
         
         container.innerHTML = logs.map(l => {
-            // Parse timestamp and format for GMT+3
+            // Parse timestamp - it's already in GMT+3 from the database
             const timestamp = new Date(l.timestamp);
-            const timeStr = timestamp.toLocaleTimeString('en-US', { 
-                hour: '2-digit', 
-                minute: '2-digit', 
-                second: '2-digit',
-                timeZone: 'Europe/Moscow'  // GMT+3
-            });
-            const dateStr = timestamp.toLocaleDateString('en-US', {
-                timeZone: 'Europe/Moscow'  // GMT+3
-            });
+            // Format time as HH:MM:SS
+            const hours = String(timestamp.getUTCHours()).padStart(2, '0');
+            const minutes = String(timestamp.getUTCMinutes()).padStart(2, '0');
+            const seconds = String(timestamp.getUTCSeconds()).padStart(2, '0');
+            const timeStr = `${hours}:${minutes}:${seconds}`;
+            
+            // Format date as MM/DD/YYYY
+            const month = String(timestamp.getUTCMonth() + 1).padStart(2, '0');
+            const day = String(timestamp.getUTCDate()).padStart(2, '0');
+            const year = timestamp.getUTCFullYear();
+            const dateStr = `${month}/${day}/${year}`;
             
             const isSuccess = l.outcome === 'success';
             const icon = isSuccess ? '✓' : '✗';
