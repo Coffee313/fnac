@@ -12,7 +12,6 @@ from src.device_manager import Device_Manager
 from src.client_manager import Client_Manager
 from src.policy_engine import Policy_Engine
 from src.log_manager import Log_Manager
-from src.radius_server import RADIUS_Server
 from src.freeradius_config_generator import FreeRADIUSConfigGenerator
 from src.api import create_app
 
@@ -57,17 +56,10 @@ def main() -> int:
         )
         logger.info("Flask app created")
         
-        # Create and start RADIUS server
-        radius_server = RADIUS_Server(
-            device_manager=device_manager,
-            client_manager=client_manager,
-            policy_engine=policy_engine,
-            log_manager=log_manager,
-            host="0.0.0.0",
-            port=1812
-        )
-        radius_server.start()
-        logger.info("RADIUS server started on UDP 1812")
+        # Note: RADIUS server is now handled by FreeRADIUS (UDP 1812)
+        # FNAC is a management UI only
+        logger.info("FNAC is a management UI for FreeRADIUS")
+        logger.info("FreeRADIUS handles RADIUS protocol on UDP 1812")
         
         # Start Flask in a thread
         flask_thread = threading.Thread(
