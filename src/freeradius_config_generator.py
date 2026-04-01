@@ -103,6 +103,7 @@ class FreeRADIUSConfigGenerator:
 
         for device in devices:
             lines.append(f"client {device.ip_address} {{")
+            lines.append(f'    ipaddr = {device.ip_address}')
             lines.append(f'    secret = "{device.shared_secret}"')
             lines.append(f'    shortname = "{device.id}"')
             lines.append("    nastype = generic")
