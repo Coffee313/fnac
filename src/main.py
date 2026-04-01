@@ -5,6 +5,7 @@ Main entry point for the RADIUS server application.
 import logging
 import sys
 import threading
+import time
 from pathlib import Path
 
 from src.logging_config import setup_logging
@@ -13,7 +14,23 @@ from src.client_manager import Client_Manager
 from src.policy_engine import Policy_Engine
 from src.log_manager import Log_Manager
 from src.freeradius_config_generator import FreeRADIUSConfigGenerator
+from src.freeradius_log_parser import FreeRADIUSLogParser
 from src.api import create_app
+
+
+def _log_parser_thread(log_parser: FreeRADIUSLogParser) -> None:
+    """Background thread that periodically parses FreeRADIUS logs."""
+    logger = logging.getLogger(__name__)
+    while True:
+        try:
+            new_entries = log_parser.parse_logs()
+            if new_entries > 0:
+                logger.debug(f"Parsed {new_entries} new FreeRADIUS log entries")
+        except Exception as e:
+            logger.error(f"Error in log parser thread: {e}")
+        
+        # Check for new logs every 2 seconds
+        time.sleep(2)
 
 
 def main() -> int:
@@ -46,6 +63,10 @@ def main() -> int:
         )
         logger.info("FreeRADIUS config generator initialized")
         
+        # Create FreeRADIUS log parser
+        log_parser = FreeRADIUSLogParser(log_manager)
+        logger.info("FreeRADIUS log parser initialized")
+        
         # Create Flask app
         app = create_app(
             device_manager,
@@ -60,6 +81,15 @@ def main() -> int:
         # FNAC is a management UI only
         logger.info("FNAC is a management UI for FreeRADIUS")
         logger.info("FreeRADIUS handles RADIUS protocol on UDP 1812")
+        
+        # Start FreeRADIUS log parser in a background thread
+        parser_thread = threading.Thread(
+            target=_log_parser_thread,
+            args=(log_parser,),
+            daemon=True
+        )
+        parser_thread.start()
+        logger.info("FreeRADIUS log parser started")
         
         # Start Flask in a thread
         flask_thread = threading.Thread(
