@@ -115,6 +115,7 @@ class FreeRADIUSConfigGenerator:
     def generate_mab_users(self) -> str:
         """
         Generate mab_users file content from client and policy data.
+        Creates entries for both colon-separated and non-colon MAC formats.
 
         Returns:
             String content of mab_users file
@@ -136,24 +137,32 @@ class FreeRADIUSConfigGenerator:
 
         for client in clients:
             mac = client.mac_address
+            mac_no_colons = mac.replace(":", "").lower()
             
             # Get policy for this client's group
             decision, vlan_id = self.policy_engine.evaluate_policy(
                 client.client_group_id
             )
 
-            # Build user entry with proper indentation (4 spaces)
-            lines.append(f'{mac} Cleartext-Password := "mab"')
-
-            # Add VLAN attributes if policy specifies VLAN assignment
+            # Build VLAN attributes if needed
+            vlan_attrs = []
             if decision == PolicyDecision.ACCEPT_WITH_VLAN and vlan_id:
-                lines.append(f'    Tunnel-Type = VLAN,')
-                lines.append(f'    Tunnel-Medium-Type = IEEE-802,')
-                lines.append(f'    Tunnel-Private-Group-ID = "{vlan_id}"')
+                vlan_attrs = [
+                    f'    Tunnel-Type = VLAN,',
+                    f'    Tunnel-Medium-Type = IEEE-802,',
+                    f'    Tunnel-Private-Group-ID = "{vlan_id}"'
+                ]
             elif decision == PolicyDecision.REJECT:
-                # Rejected clients still need an entry but won't authenticate
-                lines.append(f'    # REJECTED - will not authenticate')
+                vlan_attrs = [f'    # REJECTED - will not authenticate']
 
+            # Entry with colons (standard format)
+            lines.append(f'{mac} Cleartext-Password := "mab"')
+            lines.extend(vlan_attrs)
+            lines.append("")
+
+            # Entry without colons (for radtest and some clients)
+            lines.append(f'{mac_no_colons} Cleartext-Password := "mab"')
+            lines.extend(vlan_attrs)
             lines.append("")
 
         return "\n".join(lines)
