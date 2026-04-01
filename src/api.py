@@ -31,6 +31,7 @@ from src.policy_engine import (
     Policy_Engine,
     PolicyNotFoundError,
 )
+from src.freeradius_config_generator import FreeRADIUSConfigGenerator
 
 
 def create_app(
@@ -38,6 +39,7 @@ def create_app(
     client_manager: Client_Manager,
     policy_engine: Policy_Engine,
     log_manager: Log_Manager,
+    config_generator: FreeRADIUSConfigGenerator = None,
 ) -> Flask:
     """Create and configure the Flask application."""
     import os
@@ -72,6 +74,14 @@ def create_app(
 
     def _err(msg: str, status: int = 400):
         return jsonify({"error": msg}), status
+
+    def _update_freeradius_config():
+        """Update FreeRADIUS config files after data changes."""
+        if config_generator:
+            try:
+                config_generator.update_all_configs(reload=True, dry_run=False)
+            except Exception as e:
+                logger.warning(f"Failed to update FreeRADIUS config: {e}")
 
     def _device_to_dict(d):
         return {
@@ -147,6 +157,7 @@ def create_app(
             device = device_manager.create_device(
                 body["id"], body["ip_address"], body["shared_secret"], body["device_group_id"]
             )
+            _update_freeradius_config()
             return jsonify(_device_to_dict(device)), 201
         except DuplicateDeviceError as e:
             return _err(str(e))
@@ -177,6 +188,7 @@ def create_app(
     def delete_device(device_id):
         try:
             device_manager.delete_device(device_id)
+            _update_freeradius_config()
             return "", 204
         except DeviceNotFoundError as e:
             return _err(str(e), 404)
@@ -225,6 +237,7 @@ def create_app(
             return _err("Field 'client_group_id' is required")
         try:
             client = client_manager.create_client(body["mac_address"], body["client_group_id"])
+            _update_freeradius_config()
             return jsonify(_client_to_dict(client)), 201
         except InvalidMACAddressError as e:
             return _err(str(e))
@@ -250,6 +263,7 @@ def create_app(
     def delete_client(mac):
         try:
             client_manager.delete_client(mac)
+            _update_freeradius_config()
             return "", 204
         except ClientNotFoundError as e:
             return _err(str(e), 404)
@@ -304,6 +318,7 @@ def create_app(
             policy = policy_engine.create_policy(
                 body["id"], body["client_group_id"], decision, vlan_id=body.get("vlan_id")
             )
+            _update_freeradius_config()
             return jsonify(_policy_to_dict(policy)), 201
         except DuplicatePolicyError as e:
             return _err(str(e))
@@ -333,6 +348,7 @@ def create_app(
     def delete_policy(policy_id):
         try:
             policy_engine.delete_policy(policy_id)
+            _update_freeradius_config()
             return "", 204
         except PolicyNotFoundError as e:
             return _err(str(e), 404)
