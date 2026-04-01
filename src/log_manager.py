@@ -40,6 +40,8 @@ class Log_Manager:
         device_id: str,
         outcome: AuthenticationOutcome,
         vlan_id: Optional[int] = None,
+        policy_name: Optional[str] = None,
+        policy_decision: Optional[str] = None,
     ) -> AuthenticationLog:
         """
         Create and persist a new authentication log entry.
@@ -49,6 +51,8 @@ class Log_Manager:
             device_id: ID of the device that sent the RADIUS request
             outcome: SUCCESS or FAILURE
             vlan_id: VLAN assigned (only for successful authentications with VLAN)
+            policy_name: Name of the policy that was applied
+            policy_decision: The policy decision (accept_with_vlan, accept_without_vlan, reject)
 
         Returns:
             The created AuthenticationLog entry
@@ -61,6 +65,8 @@ class Log_Manager:
             device_id=device_id,
             outcome=outcome,
             vlan_id=vlan_id,
+            policy_name=policy_name,
+            policy_decision=policy_decision,
             created_at=now,
         )
         self._logs.append(log)

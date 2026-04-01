@@ -9,7 +9,7 @@ import os
 import re
 import logging
 from datetime import datetime
-from typing import Optional, Set
+from typing import Optional, Set, Tuple
 
 from src.log_manager import Log_Manager
 from src.models import AuthenticationOutcome
@@ -22,12 +22,12 @@ FREERADIUS_LOG_FILE = "/var/log/freeradius/radius.log"
 # Regex patterns for parsing FreeRADIUS logs
 # Example: Wed Apr  1 18:48:36 2026 : Auth: (1) Login incorrect (pap: Cleartext password does not match "known good" password): [aa:aa:aa:aa:aa:aa] (from client test port 444)
 AUTH_FAILURE_PATTERN = re.compile(
-    r'(\w+ \w+\s+\d+\s+\d+:\d+:\d+\s+\d+)\s+:\s+Auth:\s+\(\d+\)\s+.*\[([a-fA-F0-9:]+)\]'
+    r'(\w+ \w+\s+\d+\s+\d+:\d+:\d+\s+\d+)\s+:\s+Auth:\s+\(\d+\)\s+.*\[([a-fA-F0-9:]+)\]\s+\(from client (\S+)'
 )
 
 # Example: Wed Apr  1 18:35:09 2026 : Auth: (0) Login OK: [aa:aa:aa:aa:aa:aa] (from client test port 444)
 AUTH_SUCCESS_PATTERN = re.compile(
-    r'(\w+ \w+\s+\d+\s+\d+:\d+:\d+\s+\d+)\s+:\s+Auth:\s+\(\d+\)\s+Login OK:\s+\[([a-fA-F0-9:]+)\]'
+    r'(\w+ \w+\s+\d+\s+\d+:\d+:\d+\s+\d+)\s+:\s+Auth:\s+\(\d+\)\s+Login OK:\s+\[([a-fA-F0-9:]+)\]\s+\(from client (\S+)'
 )
 
 # Pattern to extract VLAN from response attributes
@@ -90,16 +90,19 @@ class FreeRADIUSLogParser:
         if success_match:
             timestamp_str = success_match.group(1)
             mac_address = success_match.group(2)
+            device_name = success_match.group(3)
             
             try:
                 timestamp = self._parse_timestamp(timestamp_str)
                 vlan_id = self._extract_vlan(line)
+                policy_decision = "accept_with_vlan" if vlan_id else "accept_without_vlan"
                 
                 self.log_manager.create_log_entry(
                     client_mac=mac_address,
-                    device_id="freeradius",
+                    device_id=device_name,
                     outcome=AuthenticationOutcome.SUCCESS,
                     vlan_id=vlan_id,
+                    policy_decision=policy_decision,
                 )
                 logger.debug(f"Created SUCCESS log entry for {mac_address}")
                 return True
@@ -112,14 +115,16 @@ class FreeRADIUSLogParser:
         if failure_match:
             timestamp_str = failure_match.group(1)
             mac_address = failure_match.group(2)
+            device_name = failure_match.group(3)
             
             try:
                 timestamp = self._parse_timestamp(timestamp_str)
                 
                 self.log_manager.create_log_entry(
                     client_mac=mac_address,
-                    device_id="freeradius",
+                    device_id=device_name,
                     outcome=AuthenticationOutcome.FAILURE,
+                    policy_decision="reject",
                 )
                 logger.debug(f"Created FAILURE log entry for {mac_address}")
                 return True

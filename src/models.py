@@ -145,4 +145,6 @@ class AuthenticationLog:
     device_id: str
     outcome: AuthenticationOutcome
     vlan_id: Optional[int] = None
+    policy_name: Optional[str] = None
+    policy_decision: Optional[str] = None
     created_at: datetime = field(default_factory=datetime.utcnow)
