@@ -1,0 +1,279 @@
+╔════════════════════════════════════════════════════════════════════════════╗
+║                                                                            ║
+║              SIMPLE RADIUS SERVER - VISUAL QUICK START GUIDE              ║
+║                                                                            ║
+╚════════════════════════════════════════════════════════════════════════════╝
+
+
+┌─ STEP 1: PREPARE YOUR SYSTEM ─────────────────────────────────────────────┐
+│                                                                             │
+│  $ sudo apt update && sudo apt upgrade -y                                  │
+│  $ sudo apt install -y python3 python3-pip python3-venv curl              │
+│                                                                             │
+│  ✓ System ready                                                             │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+
+┌─ STEP 2: SETUP THE SERVER ────────────────────────────────────────────────┐
+│                                                                             │
+│  $ cd /path/to/simple-radius-server                                        │
+│  $ ./quickstart.sh setup                                                   │
+│                                                                             │
+│  ✓ Virtual environment created                                             │
+│  ✓ Dependencies installed                                                  │
+│  ✓ Configuration directory ready                                           │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+
+┌─ STEP 3: START THE SERVER ────────────────────────────────────────────────┐
+│                                                                             │
+│  Terminal 1:                                                               │
+│  $ ./quickstart.sh run                                                     │
+│                                                                             │
+│  ✓ RADIUS listening on UDP 1812                                            │
+│  ✓ Web UI running on HTTP 5000                                             │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+
+┌─ STEP 4: CONFIGURE YOUR FIRST DEVICE ─────────────────────────────────────┐
+│                                                                             │
+│  Terminal 2:                                                               │
+│                                                                             │
+│  Create device group:                                                      │
+│  $ curl -X POST http://localhost:5000/api/device-groups \                 │
+│    -H "Content-Type: application/json" \                                   │
+│    -d '{"id": "switches", "name": "Network Switches"}'                     │
+│                                                                             │
+│  Add device:                                                               │
+│  $ curl -X POST http://localhost:5000/api/devices \                       │
+│    -H "Content-Type: application/json" \                                   │
+│    -d '{                                                                   │
+│      "id": "switch-01",                                                    │
+│      "ip_address": "192.168.1.100",                                        │
+│      "shared_secret": "my-secret-key-12345",                               │
+│      "device_group_id": "switches"                                         │
+│    }'                                                                      │
+│                                                                             │
+│  ✓ Device registered                                                       │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+
+┌─ STEP 5: ADD A CLIENT ────────────────────────────────────────────────────┐
+│                                                                             │
+│  Create client group:                                                      │
+│  $ curl -X POST http://localhost:5000/api/client-groups \                 │
+│    -H "Content-Type: application/json" \                                   │
+│    -d '{"id": "printers", "name": "Network Printers"}'                     │
+│                                                                             │
+│  Add client (MAC address):                                                 │
+│  $ curl -X POST http://localhost:5000/api/clients \                       │
+│    -H "Content-Type: application/json" \                                   │
+│    -d '{                                                                   │
+│      "mac_address": "00:11:22:33:44:55",                                   │
+│      "client_group_id": "printers"                                         │
+│    }'                                                                      │
+│                                                                             │
+│  ✓ Client registered                                                       │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+
+┌─ STEP 6: CREATE A POLICY ─────────────────────────────────────────────────┐
+│                                                                             │
+│  $ curl -X POST http://localhost:5000/api/policies \                      │
+│    -H "Content-Type: application/json" \                                   │
+│    -d '{                                                                   │
+│      "client_group_id": "printers",                                        │
+│      "decision": "ACCEPT_WITH_VLAN",                                       │
+│      "vlan_id": 100                                                        │
+│    }'                                                                      │
+│                                                                             │
+│  ✓ Policy created                                                          │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+
+┌─ STEP 7: ACCESS THE WEB UI ───────────────────────────────────────────────┐
+│                                                                             │
+│  Open your browser:                                                        │
+│  http://localhost:5000                                                     │
+│                                                                             │
+│  You should see:                                                           │
+│  ┌─────────────────────────────────────────────────────────────────────┐  │
+│  │ RADIUS Server Dashboard                                             │  │
+│  ├─────────────────────────────────────────────────────────────────────┤  │
+│  │ [Devices] [Clients] [Policies] [Logs]                              │  │
+│  ├─────────────────────────────────────────────────────────────────────┤  │
+│  │                                                                     │  │
+│  │ Devices:                                                            │  │
+│  │ ├─ switch-01 (192.168.1.100) → switches                            │  │
+│  │                                                                     │  │
+│  │ Clients:                                                            │  │
+│  │ ├─ 00:11:22:33:44:55 → printers                                    │  │
+│  │                                                                     │  │
+│  │ Policies:                                                           │  │
+│  │ ├─ printers → ACCEPT_WITH_VLAN (100)                               │  │
+│  │                                                                     │  │
+│  │ Logs:                                                               │  │
+│  │ ├─ (Authentication events will appear here)                        │  │
+│  │                                                                     │  │
+│  └─────────────────────────────────────────────────────────────────────┘  │
+│                                                                             │
+│  ✓ Web UI accessible                                                       │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+
+┌─ STEP 8: VIEW LOGS ───────────────────────────────────────────────────────┐
+│                                                                             │
+│  $ curl http://localhost:5000/api/logs | python3 -m json.tool             │
+│                                                                             │
+│  Output:                                                                   │
+│  [                                                                         │
+│    {                                                                       │
+│      "id": "log-001",                                                      │
+│      "timestamp": "2024-01-15T10:30:45.123456",                            │
+│      "client_mac": "00:11:22:33:44:55",                                    │
+│      "device_id": "switch-01",                                             │
+│      "outcome": "SUCCESS",                                                 │
+│      "vlan_id": 100                                                        │
+│    }                                                                       │
+│  ]                                                                         │
+│                                                                             │
+│  ✓ Logs visible                                                            │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+
+┌─ STEP 9: RUN TESTS ───────────────────────────────────────────────────────┐
+│                                                                             │
+│  $ ./quickstart.sh test                                                    │
+│                                                                             │
+│  Output:                                                                   │
+│  ✓ test_device_manager.py::test_create_device PASSED                      │
+│  ✓ test_client_manager.py::test_create_client PASSED                      │
+│  ✓ test_policy_engine.py::test_evaluate_policy PASSED                     │
+│  ✓ test_log_manager.py::test_create_log PASSED                            │
+│  ✓ test_persistence.py::test_round_trip PASSED                            │
+│  ✓ test_radius_server.py::test_authentication PASSED                      │
+│  ✓ test_api.py::test_endpoints PASSED                                     │
+│                                                                             │
+│  ✓ All tests passed                                                        │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+
+╔════════════════════════════════════════════════════════════════════════════╗
+║                                                                            ║
+║                         🎉 YOU'RE ALL SET! 🎉                             ║
+║                                                                            ║
+║  Your RADIUS server is now running and ready to authenticate clients!     ║
+║                                                                            ║
+╚════════════════════════════════════════════════════════════════════════════╝
+
+
+WHAT YOU CAN DO NOW:
+═══════════════════════════════════════════════════════════════════════════
+
+✓ Add more devices and clients
+✓ Create different policies (Accept/Reject/VLAN assignment)
+✓ Monitor authentication logs in real-time
+✓ Configure network devices to send RADIUS requests
+✓ Test with RADIUS client tools (radtest)
+✓ Deploy as a systemd service for production
+
+
+COMMON NEXT STEPS:
+═══════════════════════════════════════════════════════════════════════════
+
+1. Add more devices:
+   curl -X POST http://localhost:5000/api/devices ...
+
+2. Add more clients:
+   curl -X POST http://localhost:5000/api/clients ...
+
+3. Create different policies:
+   - ACCEPT_WITH_VLAN: Allow with VLAN assignment
+   - ACCEPT_WITHOUT_VLAN: Allow without VLAN
+   - REJECT: Deny access
+
+4. Monitor logs:
+   curl http://localhost:5000/api/logs | python3 -m json.tool
+
+5. Deploy to production:
+   See DEPLOYMENT_GUIDE.md
+
+
+USEFUL COMMANDS:
+═══════════════════════════════════════════════════════════════════════════
+
+List all devices:
+  curl http://localhost:5000/api/devices | python3 -m json.tool
+
+List all clients:
+  curl http://localhost:5000/api/clients | python3 -m json.tool
+
+List all policies:
+  curl http://localhost:5000/api/policies | python3 -m json.tool
+
+View logs:
+  curl http://localhost:5000/api/logs | python3 -m json.tool
+
+Filter logs by MAC:
+  curl "http://localhost:5000/api/logs?mac_address=00:11:22:33:44:55" | python3 -m json.tool
+
+Stop the server:
+  Press Ctrl+C in the server terminal
+
+Restart the server:
+  ./quickstart.sh run
+
+
+DOCUMENTATION:
+═══════════════════════════════════════════════════════════════════════════
+
+Quick Reference:
+  → QUICK_REFERENCE.md
+
+Configuration Examples:
+  → EXAMPLE_SETUP.md
+
+Full Documentation:
+  → README.md
+
+System Architecture:
+  → ARCHITECTURE.md
+
+Production Deployment:
+  → DEPLOYMENT_GUIDE.md
+
+Deployment Checklist:
+  → DEPLOYMENT_CHECKLIST.md
+
+
+TROUBLESHOOTING:
+═══════════════════════════════════════════════════════════════════════════
+
+Port already in use:
+  sudo lsof -i :1812
+  sudo kill -9 <PID>
+
+Permission denied:
+  Run with sudo: sudo -E ./quickstart.sh run
+
+Can't connect to web UI:
+  Check if running: ps aux | grep python3
+
+Module not found:
+  Activate venv: source venv/bin/activate
+
+
+═══════════════════════════════════════════════════════════════════════════
+
+For more help, see DOCUMENTATION_INDEX.md or README.md
+
+Happy authenticating! 🚀

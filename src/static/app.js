@@ -1,0 +1,402 @@
+// API Base URL
+const API_URL = '/api';
+
+// Message display
+function showMessage(text, type = 'success') {
+    const msg = document.getElementById('message');
+    msg.textContent = text;
+    msg.className = `message show ${type}`;
+    setTimeout(() => msg.classList.remove('show'), 3000);
+}
+
+// Tab switching
+document.querySelectorAll('.nav-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        btn.classList.add('active');
+        document.getElementById(btn.dataset.tab).classList.add('active');
+        loadTabData(btn.dataset.tab);
+    });
+});
+
+// Load tab data
+async function loadTabData(tab) {
+    if (tab === 'devices') {
+        await loadDeviceGroups();
+        await loadDevices();
+    } else if (tab === 'clients') {
+        await loadClientGroups();
+        await loadClients();
+    } else if (tab === 'policies') {
+        await loadClientGroupsForPolicy();
+        await loadPolicies();
+    } else if (tab === 'logs') {
+        await loadLogs();
+    }
+}
+
+// ===== DEVICES =====
+async function loadDeviceGroups() {
+    try {
+        const res = await fetch(`${API_URL}/device-groups`);
+        const groups = await res.json();
+        const container = document.getElementById('deviceGroupsContainer');
+        container.innerHTML = groups.map(g => `
+            <div class="item">
+                <div class="item-info">
+                    <p><strong>ID:</strong> ${g.id}</p>
+                    <p><strong>Name:</strong> ${g.name}</p>
+                </div>
+                <div class="item-actions">
+                    <button class="btn-delete" onclick="deleteDeviceGroup('${g.id}')">Delete</button>
+                </div>
+            </div>
+        `).join('');
+        
+        const select = document.getElementById('deviceGroup');
+        select.innerHTML = '<option value="">Select Device Group</option>' + 
+            groups.map(g => `<option value="${g.id}">${g.name}</option>`).join('');
+    } catch (e) {
+        showMessage('Error loading device groups', 'error');
+    }
+}
+
+async function loadDevices() {
+    try {
+        const res = await fetch(`${API_URL}/devices`);
+        const devices = await res.json();
+        const container = document.getElementById('devicesContainer');
+        container.innerHTML = devices.map(d => `
+            <div class="item">
+                <div class="item-info">
+                    <p><strong>ID:</strong> ${d.id}</p>
+                    <p><strong>IP:</strong> ${d.ip_address}</p>
+                    <p><strong>Group:</strong> ${d.device_group_id}</p>
+                </div>
+                <div class="item-actions">
+                    <button class="btn-delete" onclick="deleteDevice('${d.id}')">Delete</button>
+                </div>
+            </div>
+        `).join('');
+    } catch (e) {
+        showMessage('Error loading devices', 'error');
+    }
+}
+
+document.getElementById('deviceGroupForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const id = document.getElementById('groupId').value;
+    const name = document.getElementById('groupName').value;
+    try {
+        const res = await fetch(`${API_URL}/device-groups`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id, name })
+        });
+        if (res.ok) {
+            showMessage('Device group created');
+            e.target.reset();
+            await loadDeviceGroups();
+        } else {
+            const err = await res.json();
+            showMessage(err.error || 'Error creating group', 'error');
+        }
+    } catch (e) {
+        showMessage('Error creating group', 'error');
+    }
+});
+
+document.getElementById('deviceForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const id = document.getElementById('deviceId').value;
+    const ip_address = document.getElementById('deviceIp').value;
+    const shared_secret = document.getElementById('deviceSecret').value;
+    const device_group_id = document.getElementById('deviceGroup').value;
+    try {
+        const res = await fetch(`${API_URL}/devices`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id, ip_address, shared_secret, device_group_id })
+        });
+        if (res.ok) {
+            showMessage('Device created');
+            e.target.reset();
+            await loadDevices();
+        } else {
+            const err = await res.json();
+            showMessage(err.error || 'Error creating device', 'error');
+        }
+    } catch (e) {
+        showMessage('Error creating device', 'error');
+    }
+});
+
+async function deleteDevice(id) {
+    if (!confirm('Delete this device?')) return;
+    try {
+        const res = await fetch(`${API_URL}/devices/${id}`, { method: 'DELETE' });
+        if (res.ok) {
+            showMessage('Device deleted');
+            await loadDevices();
+        } else {
+            showMessage('Error deleting device', 'error');
+        }
+    } catch (e) {
+        showMessage('Error deleting device', 'error');
+    }
+}
+
+async function deleteDeviceGroup(id) {
+    if (!confirm('Delete this group?')) return;
+    try {
+        const res = await fetch(`${API_URL}/device-groups/${id}`, { method: 'DELETE' });
+        if (res.ok) {
+            showMessage('Group deleted');
+            await loadDeviceGroups();
+        } else {
+            const err = await res.json();
+            showMessage(err.error || 'Error deleting group', 'error');
+        }
+    } catch (e) {
+        showMessage('Error deleting group', 'error');
+    }
+}
+
+// ===== CLIENTS =====
+async function loadClientGroups() {
+    try {
+        const res = await fetch(`${API_URL}/client-groups`);
+        const groups = await res.json();
+        const container = document.getElementById('clientGroupsContainer');
+        container.innerHTML = groups.map(g => `
+            <div class="item">
+                <div class="item-info">
+                    <p><strong>ID:</strong> ${g.id}</p>
+                    <p><strong>Name:</strong> ${g.name}</p>
+                </div>
+                <div class="item-actions">
+                    <button class="btn-delete" onclick="deleteClientGroup('${g.id}')">Delete</button>
+                </div>
+            </div>
+        `).join('');
+        
+        const select = document.getElementById('clientGroup');
+        select.innerHTML = '<option value="">Select Client Group</option>' + 
+            groups.map(g => `<option value="${g.id}">${g.name}</option>`).join('');
+    } catch (e) {
+        showMessage('Error loading client groups', 'error');
+    }
+}
+
+async function loadClients() {
+    try {
+        const res = await fetch(`${API_URL}/clients`);
+        const clients = await res.json();
+        const container = document.getElementById('clientsContainer');
+        container.innerHTML = clients.map(c => `
+            <div class="item">
+                <div class="item-info">
+                    <p><strong>MAC:</strong> ${c.mac_address}</p>
+                    <p><strong>Group:</strong> ${c.client_group_id}</p>
+                </div>
+                <div class="item-actions">
+                    <button class="btn-delete" onclick="deleteClient('${c.mac_address}')">Delete</button>
+                </div>
+            </div>
+        `).join('');
+    } catch (e) {
+        showMessage('Error loading clients', 'error');
+    }
+}
+
+document.getElementById('clientGroupForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const id = document.getElementById('cGroupId').value;
+    const name = document.getElementById('cGroupName').value;
+    try {
+        const res = await fetch(`${API_URL}/client-groups`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id, name })
+        });
+        if (res.ok) {
+            showMessage('Client group created');
+            e.target.reset();
+            await loadClientGroups();
+        } else {
+            const err = await res.json();
+            showMessage(err.error || 'Error creating group', 'error');
+        }
+    } catch (e) {
+        showMessage('Error creating group', 'error');
+    }
+});
+
+document.getElementById('clientForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const mac_address = document.getElementById('clientMac').value;
+    const client_group_id = document.getElementById('clientGroup').value;
+    try {
+        const res = await fetch(`${API_URL}/clients`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ mac_address, client_group_id })
+        });
+        if (res.ok) {
+            showMessage('Client created');
+            e.target.reset();
+            await loadClients();
+        } else {
+            const err = await res.json();
+            showMessage(err.error || 'Error creating client', 'error');
+        }
+    } catch (e) {
+        showMessage('Error creating client', 'error');
+    }
+});
+
+async function deleteClient(mac) {
+    if (!confirm('Delete this client?')) return;
+    try {
+        const res = await fetch(`${API_URL}/clients/${encodeURIComponent(mac)}`, { method: 'DELETE' });
+        if (res.ok) {
+            showMessage('Client deleted');
+            await loadClients();
+        } else {
+            showMessage('Error deleting client', 'error');
+        }
+    } catch (e) {
+        showMessage('Error deleting client', 'error');
+    }
+}
+
+async function deleteClientGroup(id) {
+    if (!confirm('Delete this group?')) return;
+    try {
+        const res = await fetch(`${API_URL}/client-groups/${id}`, { method: 'DELETE' });
+        if (res.ok) {
+            showMessage('Group deleted');
+            await loadClientGroups();
+        } else {
+            const err = await res.json();
+            showMessage(err.error || 'Error deleting group', 'error');
+        }
+    } catch (e) {
+        showMessage('Error deleting group', 'error');
+    }
+}
+
+// ===== POLICIES =====
+async function loadClientGroupsForPolicy() {
+    try {
+        const res = await fetch(`${API_URL}/client-groups`);
+        const groups = await res.json();
+        const select = document.getElementById('policyClientGroup');
+        select.innerHTML = '<option value="">Select Client Group</option>' + 
+            groups.map(g => `<option value="${g.id}">${g.name}</option>`).join('');
+    } catch (e) {
+        showMessage('Error loading client groups', 'error');
+    }
+}
+
+async function loadPolicies() {
+    try {
+        const res = await fetch(`${API_URL}/policies`);
+        const policies = await res.json();
+        const container = document.getElementById('policiesContainer');
+        container.innerHTML = policies.map(p => `
+            <div class="item">
+                <div class="item-info">
+                    <p><strong>ID:</strong> ${p.id}</p>
+                    <p><strong>Client Group:</strong> ${p.client_group_id}</p>
+                    <p><strong>Decision:</strong> <span class="status-badge status-${p.decision.toLowerCase()}">${p.decision}</span></p>
+                    ${p.vlan_id ? `<p><strong>VLAN:</strong> ${p.vlan_id}</p>` : ''}
+                </div>
+                <div class="item-actions">
+                    <button class="btn-delete" onclick="deletePolicy('${p.id}')">Delete</button>
+                </div>
+            </div>
+        `).join('');
+    } catch (e) {
+        showMessage('Error loading policies', 'error');
+    }
+}
+
+document.getElementById('policyForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const id = document.getElementById('policyId').value;
+    const client_group_id = document.getElementById('policyClientGroup').value;
+    const decision = document.getElementById('policyDecision').value;
+    const vlan_id = document.getElementById('policyVlan').value ? parseInt(document.getElementById('policyVlan').value) : null;
+    try {
+        const res = await fetch(`${API_URL}/policies`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id, client_group_id, decision, vlan_id })
+        });
+        if (res.ok) {
+            showMessage('Policy created');
+            e.target.reset();
+            await loadPolicies();
+        } else {
+            const err = await res.json();
+            showMessage(err.error || 'Error creating policy', 'error');
+        }
+    } catch (e) {
+        showMessage('Error creating policy', 'error');
+    }
+});
+
+async function deletePolicy(id) {
+    if (!confirm('Delete this policy?')) return;
+    try {
+        const res = await fetch(`${API_URL}/policies/${id}`, { method: 'DELETE' });
+        if (res.ok) {
+            showMessage('Policy deleted');
+            await loadPolicies();
+        } else {
+            showMessage('Error deleting policy', 'error');
+        }
+    } catch (e) {
+        showMessage('Error deleting policy', 'error');
+    }
+}
+
+// ===== LOGS =====
+async function loadLogs() {
+    try {
+        const mac = document.getElementById('filterMac').value;
+        const outcome = document.getElementById('filterOutcome').value;
+        let url = `${API_URL}/logs`;
+        const params = [];
+        if (mac) params.push(`mac_address=${encodeURIComponent(mac)}`);
+        if (outcome) params.push(`outcome=${outcome}`);
+        if (params.length) url += '?' + params.join('&');
+        
+        const res = await fetch(url);
+        const logs = await res.json();
+        const container = document.getElementById('logsContainer');
+        container.innerHTML = logs.map(l => `
+            <div class="item">
+                <div class="item-info">
+                    <p><strong>Time:</strong> ${new Date(l.timestamp).toLocaleString()}</p>
+                    <p><strong>MAC:</strong> ${l.client_mac}</p>
+                    <p><strong>Device:</strong> ${l.device_id}</p>
+                    <p><strong>Result:</strong> <span class="status-badge status-${l.outcome.toLowerCase()}">${l.outcome}</span></p>
+                    ${l.vlan_id ? `<p><strong>VLAN:</strong> ${l.vlan_id}</p>` : ''}
+                </div>
+            </div>
+        `).join('');
+    } catch (e) {
+        showMessage('Error loading logs', 'error');
+    }
+}
+
+document.getElementById('filterForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    await loadLogs();
+});
+
+// Initial load
+loadTabData('devices');

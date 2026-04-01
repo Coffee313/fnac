@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RADIUS Server Dashboard</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="layout">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="logo">
+                <h1>🔐 RADIUS</h1>
+                <p>Server</p>
+            </div>
+            <nav class="sidebar-nav">
+                <button class="nav-btn active" data-tab="devices">
+                    <span class="icon">📱</span>
+                    <span>Devices</span>
+                </button>
+                <button class="nav-btn" data-tab="clients">
+                    <span class="icon">👥</span>
+                    <span>Clients</span>
+                </button>
+                <button class="nav-btn" data-tab="policies">
+                    <span class="icon">⚙️</span>
+                    <span>Policies</span>
+                </button>
+                <button class="nav-btn" data-tab="logs">
+                    <span class="icon">📋</span>
+                    <span>Logs</span>
+                </button>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <header class="top-bar">
+                <h1>RADIUS Server Dashboard</h1>
+                <p>MAC Authentication Bypass Management</p>
+            </header>
+
+            <div class="content-area">
+                <!-- Devices -->
+                <div id="devices" class="tab-content active">
+                    <h2>Network Devices</h2>
+                    <div class="grid">
+                        <div class="section">
+                            <h3>Add Device</h3>
+                            <form id="deviceForm" class="form">
+                                <input type="text" id="deviceId" placeholder="Device ID" required>
+                                <input type="text" id="deviceIp" placeholder="IP Address" required>
+                                <input type="text" id="deviceSecret" placeholder="Shared Secret" required>
+                                <select id="deviceGroup" required>
+                                    <option value="">Select Device Group</option>
+                                </select>
+                                <button type="submit">Add Device</button>
+                            </form>
+                        </div>
+                        <div class="section">
+                            <h3>Add Device Group</h3>
+                            <form id="deviceGroupForm" class="form">
+                                <input type="text" id="groupId" placeholder="Group ID" required>
+                                <input type="text" id="groupName" placeholder="Group Name" required>
+                                <button type="submit">Add Group</button>
+                            </form>
+                        </div>
+                    </div>
+                    <div class="section full-width">
+                        <h3>Device Groups</h3>
+                        <div id="deviceGroupsContainer" class="list-container"></div>
+                    </div>
+                    <div class="section full-width">
+                        <h3>Devices List</h3>
+                        <div id="devicesContainer" class="list-container"></div>
+                    </div>
+                </div>
+
+                <!-- Clients -->
+                <div id="clients" class="tab-content">
+                    <h2>Clients (MAC Addresses)</h2>
+                    <div class="grid">
+                        <div class="section">
+                            <h3>Add Client</h3>
+                            <form id="clientForm" class="form">
+                                <input type="text" id="clientMac" placeholder="MAC Address (XX:XX:XX:XX:XX:XX)" required>
+                                <select id="clientGroup" required>
+                                    <option value="">Select Client Group</option>
+                                </select>
+                                <button type="submit">Add Client</button>
+                            </form>
+                        </div>
+                        <div class="section">
+                            <h3>Add Client Group</h3>
+                            <form id="clientGroupForm" class="form">
+                                <input type="text" id="cGroupId" placeholder="Group ID" required>
+                                <input type="text" id="cGroupName" placeholder="Group Name" required>
+                                <button type="submit">Add Group</button>
+                            </form>
+                        </div>
+                    </div>
+                    <div class="section full-width">
+                        <h3>Client Groups</h3>
+                        <div id="clientGroupsContainer" class="list-container"></div>
+                    </div>
+                    <div class="section full-width">
+                        <h3>Clients List</h3>
+                        <div id="clientsContainer" class="list-container"></div>
+                    </div>
+                </div>
+
+                <!-- Policies -->
+                <div id="policies" class="tab-content">
+                    <h2>Authentication Policies</h2>
+                    <div class="section">
+                        <h3>Create Policy</h3>
+                        <form id="policyForm" class="form">
+                            <input type="text" id="policyId" placeholder="Policy ID" required>
+                            <select id="policyClientGroup" required>
+                                <option value="">Select Client Group</option>
+                            </select>
+                            <select id="policyDecision" required>
+                                <option value="">Select Decision</option>
+                                <option value="accept_with_vlan">Accept with VLAN</option>
+                                <option value="accept_without_vlan">Accept without VLAN</option>
+                                <option value="reject">Reject</option>
+                            </select>
+                            <input type="number" id="policyVlan" placeholder="VLAN ID (1-4094)" min="1" max="4094">
+                            <button type="submit">Create Policy</button>
+                        </form>
+                    </div>
+                    <div class="section full-width">
+                        <h3>Policies List</h3>
+                        <div id="policiesContainer" class="list-container"></div>
+                    </div>
+                </div>
+
+                <!-- Logs -->
+                <div id="logs" class="tab-content">
+                    <h2>Authentication Logs</h2>
+                    <div class="section">
+                        <h3>Filter Logs</h3>
+                        <form id="filterForm" class="form">
+                            <input type="text" id="filterMac" placeholder="MAC Address (optional)">
+                            <select id="filterOutcome">
+                                <option value="">All Outcomes</option>
+                                <option value="SUCCESS">Success</option>
+                                <option value="FAILURE">Failure</option>
+                            </select>
+                            <button type="submit">Filter</button>
+                        </form>
+                    </div>
+                    <div class="section full-width">
+                        <h3>Logs</h3>
+                        <div id="logsContainer" class="list-container"></div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <div id="message" class="message"></div>
+    </div>
+
+    <script src="/static/app.js"></script>
+</body>
+</html>
