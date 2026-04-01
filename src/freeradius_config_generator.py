@@ -202,7 +202,7 @@ class FreeRADIUSConfigGenerator:
             True if successful, False otherwise
         """
         try:
-            # Try systemctl first (preferred)
+            # Try systemctl reload first, fall back to restart if not supported
             result = subprocess.run(
                 ["sudo", "systemctl", "reload", "freeradius"],
                 capture_output=True,
@@ -213,11 +213,27 @@ class FreeRADIUSConfigGenerator:
                 logger.info("FreeRADIUS reloaded successfully")
                 return True
             else:
-                logger.error(f"Failed to reload FreeRADIUS: {result.stderr.decode()}")
-                return False
+                # If reload not supported, try restart
+                stderr = result.stderr.decode()
+                if "reload is not applicable" in stderr or "not supported" in stderr:
+                    logger.info("Reload not supported, restarting FreeRADIUS instead")
+                    result = subprocess.run(
+                        ["sudo", "systemctl", "restart", "freeradius"],
+                        capture_output=True,
+                        timeout=10,
+                    )
+                    if result.returncode == 0:
+                        logger.info("FreeRADIUS restarted successfully")
+                        return True
+                    else:
+                        logger.error(f"Failed to restart FreeRADIUS: {result.stderr.decode()}")
+                        return False
+                else:
+                    logger.error(f"Failed to reload FreeRADIUS: {stderr}")
+                    return False
 
         except subprocess.TimeoutExpired:
-            logger.error("FreeRADIUS reload timed out")
+            logger.error("FreeRADIUS reload/restart timed out")
             return False
         except Exception as e:
             logger.error(f"Error reloading FreeRADIUS: {e}")
