@@ -98,21 +98,21 @@ class FreeRADIUSLogParser:
                 vlan_id = self._extract_vlan(line)
                 policy_decision = "accept_with_vlan" if vlan_id else "accept_without_vlan"
                 
-                # Create log entry with explicit timestamp
-                from src.models import AuthenticationLog, AuthenticationOutcome
-                import uuid
-                log = AuthenticationLog(
-                    id=str(uuid.uuid4()),
-                    timestamp=timestamp,
+                # Create log entry with explicit timestamp via log manager
+                # The log manager will handle database persistence
+                from src.models import AuthenticationOutcome
+                log = self.log_manager.create_log_entry(
                     client_mac=mac_address,
                     device_id=device_name,
                     outcome=AuthenticationOutcome.SUCCESS,
                     vlan_id=vlan_id,
                     policy_decision=policy_decision,
-                    created_at=timestamp,  # Use same timestamp for created_at
                 )
+                # Override the timestamp to use the one from FreeRADIUS log
+                log.timestamp = timestamp
+                log.created_at = timestamp
                 
-                # Save directly to database
+                # Save the corrected log to database
                 from src.db_persistence import LogPersistence as DBLogPersistence
                 DBLogPersistence.save_log(log)
                 
@@ -132,20 +132,19 @@ class FreeRADIUSLogParser:
             try:
                 timestamp = self._parse_timestamp(timestamp_str)
                 
-                # Create log entry with explicit timestamp
-                from src.models import AuthenticationLog, AuthenticationOutcome
-                import uuid
-                log = AuthenticationLog(
-                    id=str(uuid.uuid4()),
-                    timestamp=timestamp,
+                # Create log entry with explicit timestamp via log manager
+                from src.models import AuthenticationOutcome
+                log = self.log_manager.create_log_entry(
                     client_mac=mac_address,
                     device_id=device_name,
                     outcome=AuthenticationOutcome.FAILURE,
                     policy_decision="reject",
-                    created_at=timestamp,  # Use same timestamp for created_at
                 )
+                # Override the timestamp to use the one from FreeRADIUS log
+                log.timestamp = timestamp
+                log.created_at = timestamp
                 
-                # Save directly to database
+                # Save the corrected log to database
                 from src.db_persistence import LogPersistence as DBLogPersistence
                 DBLogPersistence.save_log(log)
                 

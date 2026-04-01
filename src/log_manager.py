@@ -70,9 +70,8 @@ class Log_Manager:
             created_at=now,
         )
         self._logs.append(log)
-        # Save individual log entry to database
-        from src.db_persistence import LogPersistence as DBLogPersistence
-        DBLogPersistence.save_log(log)
+        # Note: Database persistence is handled by the caller (e.g., log parser)
+        # This allows the caller to override timestamps before saving
         return log
 
     def list_logs(self) -> List[AuthenticationLog]:
