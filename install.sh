@@ -152,6 +152,10 @@ systemctl unmask freeradius 2>/dev/null || true
 systemctl stop freeradius 2>/dev/null || true
 systemctl disable freeradius 2>/dev/null || true
 
+# Remove package's default radiusd.conf completely
+rm -f /etc/freeradius/3.0/radiusd.conf.dpkg-dist
+rm -f /etc/freeradius/3.0/radiusd.conf.dpkg-old
+
 # Ensure our config is in place (package install might have overwritten it)
 cat > /etc/freeradius/3.0/radiusd.conf << 'RADIUSEOF'
 prefix = /usr
@@ -228,8 +232,12 @@ chmod 640 /etc/freeradius/3.0/mab_users
 mkdir -p /etc/systemd/system/freeradius.service.d
 cat > /etc/systemd/system/freeradius.service.d/override.conf << 'OVERRIDEEOF'
 [Service]
+Type=simple
+ExecStartPre=
 ExecStart=
 ExecStart=/usr/sbin/freeradius -d /etc/freeradius/3.0 -f
+StandardOutput=journal
+StandardError=journal
 OVERRIDEEOF
 systemctl daemon-reload
 
