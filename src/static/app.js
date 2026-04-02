@@ -193,6 +193,9 @@ async function loadClients() {
         const container = document.getElementById('clientsContainer');
         container.innerHTML = clients.map(c => `
             <div class="item">
+                <div class="item-checkbox">
+                    <input type="checkbox" class="client-checkbox" data-mac="${c.mac_address}">
+                </div>
                 <div class="item-info">
                     <p><strong>MAC:</strong> ${c.mac_address}</p>
                     ${c.name ? `<p><strong>Name:</strong> ${c.name}</p>` : ''}
@@ -203,6 +206,13 @@ async function loadClients() {
                 </div>
             </div>
         `).join('');
+        
+        // Add checkbox event listeners
+        document.querySelectorAll('.client-checkbox').forEach(checkbox => {
+            checkbox.addEventListener('change', updateBulkDeleteButton);
+        });
+        
+        updateBulkDeleteButton();
     } catch (e) {
         showMessage('Error loading clients', 'error');
     }
@@ -268,6 +278,55 @@ async function deleteClient(mac) {
         showMessage('Error deleting client', 'error');
     }
 }
+
+function updateBulkDeleteButton() {
+    const selectedCount = document.querySelectorAll('.client-checkbox:checked').length;
+    const deleteBtn = document.getElementById('deleteSelectedClients');
+    if (selectedCount > 0) {
+        deleteBtn.style.display = 'inline-block';
+        deleteBtn.textContent = `Delete Selected (${selectedCount})`;
+    } else {
+        deleteBtn.style.display = 'none';
+    }
+}
+
+document.getElementById('selectAllClients')?.addEventListener('click', () => {
+    const checkboxes = document.querySelectorAll('.client-checkbox');
+    const allChecked = Array.from(checkboxes).every(cb => cb.checked);
+    checkboxes.forEach(cb => cb.checked = !allChecked);
+    updateBulkDeleteButton();
+});
+
+document.getElementById('deleteSelectedClients')?.addEventListener('click', async () => {
+    const selectedMacs = Array.from(document.querySelectorAll('.client-checkbox:checked'))
+        .map(cb => cb.dataset.mac);
+    
+    if (selectedMacs.length === 0) {
+        showMessage('No clients selected', 'error');
+        return;
+    }
+    
+    if (!confirm(`Delete ${selectedMacs.length} client(s)?`)) return;
+    
+    try {
+        let deleted = 0;
+        let failed = 0;
+        
+        for (const mac of selectedMacs) {
+            const res = await fetch(`${API_URL}/clients/${encodeURIComponent(mac)}`, { method: 'DELETE' });
+            if (res.ok) {
+                deleted++;
+            } else {
+                failed++;
+            }
+        }
+        
+        showMessage(`Deleted ${deleted} client(s)${failed > 0 ? `, ${failed} failed` : ''}`);
+        await loadClients();
+    } catch (e) {
+        showMessage('Error deleting clients', 'error');
+    }
+});
 
 async function deleteClientGroup(name) {
     if (!confirm('Delete this group?')) return;
@@ -403,18 +462,18 @@ async function loadLogs() {
             const dateStr = `${day}.${month}.${year}`;
             
             const isSuccess = l.outcome === 'success';
-            const icon = isSuccess ? '✓' : '✗';
+            const statusText = isSuccess ? 'ACCEPT' : 'REJECT';
             const vlanInfo = l.vlan_id ? ` • VLAN ${l.vlan_id}` : '';
             const policyInfo = l.policy_name ? ` • Policy: ${l.policy_name}` : '';
             
             return `
                 <div class="log-item ${isSuccess ? 'log-success' : 'log-failure'}">
-                    <div class="log-icon">${icon}</div>
+                    <div class="log-status-indicator ${isSuccess ? 'status-accept' : 'status-reject'}"></div>
                     <div class="log-content">
                         <div class="log-main">
                             <span class="log-time">${dateStr} ${timeStr}</span>
                             <span class="log-mac">${l.client_mac}</span>
-                            <span class="log-status">${isSuccess ? 'ACCEPT' : 'REJECT'}${vlanInfo}${policyInfo}</span>
+                            <span class="log-status">${statusText}${vlanInfo}${policyInfo}</span>
                         </div>
                         <div class="log-meta">
                             <span class="log-device">Device: ${l.device_id}</span>

@@ -11,28 +11,23 @@
         <!-- Sidebar -->
         <aside class="sidebar">
             <div class="logo">
-                <h1>🔐 RADIUS</h1>
+                <h1>RADIUS</h1>
                 <p>Server</p>
             </div>
             <nav class="sidebar-nav">
                 <button class="nav-btn active" data-tab="devices">
-                    <span class="icon">📱</span>
                     <span>Devices</span>
                 </button>
                 <button class="nav-btn" data-tab="clients">
-                    <span class="icon">👥</span>
                     <span>Clients</span>
                 </button>
                 <button class="nav-btn" data-tab="policies">
-                    <span class="icon">⚙️</span>
                     <span>Policies</span>
                 </button>
                 <button class="nav-btn" data-tab="logs">
-                    <span class="icon">📋</span>
                     <span>Logs</span>
                 </button>
                 <button class="nav-btn" data-tab="settings">
-                    <span class="icon">💾</span>
                     <span>Settings</span>
                 </button>
             </nav>
@@ -118,7 +113,13 @@
                         <div id="clientGroupsContainer" class="list-container"></div>
                     </div>
                     <div class="section full-width">
-                        <h3>Clients List</h3>
+                        <div class="section-header">
+                            <h3>Clients List</h3>
+                            <div class="bulk-actions">
+                                <button id="selectAllClients" class="btn-secondary">Select All</button>
+                                <button id="deleteSelectedClients" class="btn-danger" style="display:none;">Delete Selected</button>
+                            </div>
+                        </div>
                         <div id="clientsContainer" class="list-container"></div>
                     </div>
                 </div>
