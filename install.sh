@@ -146,9 +146,6 @@ certdir = ${confdir}/certs
 cadir = ${confdir}/certs
 run_dir = ${localstatedir}/run/freeradius
 
-user = freerad
-group = freerad
-
 max_request_time = 30
 cleanup_delay = 5
 max_requests = 16384
