@@ -50,12 +50,6 @@ mkdir -p /var/lib/freeradius
 mkdir -p /var/run/freeradius
 mkdir -p /var/log/freeradius/radacct
 
-# Verify directories exist
-if [ ! -d "/etc/freeradius/3.0/mods-enabled" ]; then
-    echo "ERROR: Failed to create /etc/freeradius/3.0/mods-enabled"
-    exit 1
-fi
-
 # Mask FreeRADIUS service to prevent it from starting during installation
 echo "Masking FreeRADIUS service during installation..."
 systemctl mask freeradius 2>/dev/null || true
@@ -118,11 +112,6 @@ RADIUSEOF
 # Create minimal working modules
 echo "Creating FreeRADIUS modules..."
 
-# Verify mods-enabled directory exists before writing
-if [ ! -d "/etc/freeradius/3.0/mods-enabled" ]; then
-    mkdir -p /etc/freeradius/3.0/mods-enabled
-fi
-
 # PAP module
 cat > /etc/freeradius/3.0/mods-enabled/pap << 'PAPEOF'
 pap {
@@ -156,14 +145,12 @@ detail {
 DETAILEOF
 
 # Create access-reject file
-mkdir -p /etc/freeradius/3.0/mods-config/attr_filter
 cat > /etc/freeradius/3.0/mods-config/attr_filter/access-reject << 'REJECTEOF'
 Reply-Message
 REJECTEOF
 
 # Create default site
 echo "Creating default site configuration..."
-mkdir -p /etc/freeradius/3.0/sites-available
 cat > /etc/freeradius/3.0/sites-available/default << 'SITEEOF'
 server default {
     authorize {
@@ -186,7 +173,6 @@ server default {
 SITEEOF
 
 # Enable default site
-mkdir -p /etc/freeradius/3.0/sites-enabled
 ln -sf ../sites-available/default /etc/freeradius/3.0/sites-enabled/default 2>/dev/null || true
 
 # Create empty mab_users file
@@ -231,6 +217,9 @@ if ! id "$FNAC_USER" &>/dev/null; then
     groupadd -r "$FNAC_GROUP" 2>/dev/null || true
     useradd -r -g "$FNAC_GROUP" -d "$INSTALL_DIR" -s /bin/false "$FNAC_USER"
 fi
+
+# Add fnac to freerad group
+usermod -a -G freerad fnac 2>/dev/null || true
 
 # Allow fnac user to restart FreeRADIUS without password
 echo "Configuring passwordless sudo for FNAC..."
@@ -302,7 +291,10 @@ echo "[7/7] Starting services..."
 # Ensure FreeRADIUS is NOT masked
 systemctl unmask freeradius 2>/dev/null || true
 systemctl disable freeradius 2>/dev/null || true
+
+# Make absolutely sure FreeRADIUS is stopped before starting
 systemctl stop freeradius 2>/dev/null || true
+sleep 2
 
 # Start FNAC only
 systemctl start "$SERVICE_NAME"
