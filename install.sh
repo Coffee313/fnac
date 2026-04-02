@@ -141,6 +141,72 @@ EOF
 
 systemctl daemon-reload
 
+# Create minimal radiusd.conf if it doesn't exist or is broken
+echo "Creating minimal FreeRADIUS configuration..."
+if [ ! -f /etc/freeradius/3.0/radiusd.conf ] || ! /usr/sbin/freeradius -C -d /etc/freeradius/3.0 2>/dev/null; then
+    cat > /etc/freeradius/3.0/radiusd.conf << 'RADIUSEOF'
+prefix = /usr
+exec_prefix = /usr
+sysconfdir = /etc
+localstatedir = /var
+sbindir = /usr/sbin
+logdir = ${localstatedir}/log/freeradius
+radacctdir = ${logdir}/radacct
+confdir = ${sysconfdir}/freeradius/3.0
+modconfdir = ${confdir}/mods-config
+certdir = ${confdir}/certs
+cadir = ${confdir}/certs
+run_dir = ${localstatedir}/run/freeradius
+
+user = freerad
+group = freerad
+
+max_request_time = 30
+cleanup_delay = 5
+max_requests = 16384
+listen {
+    type = auth
+    ipaddr = *
+    port = 1812
+    proto = udp
+}
+listen {
+    type = acct
+    ipaddr = *
+    port = 1813
+    proto = udp
+}
+$INCLUDE mods-enabled/
+$INCLUDE sites-enabled/
+RADIUSEOF
+    chown freerad:freerad /etc/freeradius/3.0/radiusd.conf
+    chmod 640 /etc/freeradius/3.0/radiusd.conf
+fi
+
+# Create mods-enabled and sites-enabled directories
+mkdir -p /etc/freeradius/3.0/mods-enabled
+mkdir -p /etc/freeradius/3.0/sites-enabled
+chown -R freerad:freerad /etc/freeradius/3.0/mods-enabled /etc/freeradius/3.0/sites-enabled
+
+# Create a minimal default site config
+if [ ! -f /etc/freeradius/3.0/sites-enabled/default ]; then
+    cat > /etc/freeradius/3.0/sites-enabled/default << 'SITEEOF'
+server default {
+    authorize {
+        ok
+    }
+    authenticate {
+        ok
+    }
+    accounting {
+        ok
+    }
+}
+SITEEOF
+    chown freerad:freerad /etc/freeradius/3.0/sites-enabled/default
+    chmod 640 /etc/freeradius/3.0/sites-enabled/default
+fi
+
 # Now enable and start FreeRADIUS with proper config
 echo "Starting FreeRADIUS service..."
 systemctl enable freeradius 2>/dev/null || true
