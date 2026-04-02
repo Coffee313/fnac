@@ -147,6 +147,18 @@ if ! id "$FNAC_USER" &>/dev/null; then
     useradd -r -g "$FNAC_GROUP" -d "$INSTALL_DIR" -s /bin/false "$FNAC_USER"
 fi
 
+# Allow fnac user to restart FreeRADIUS without password
+echo "Configuring passwordless sudo for FNAC..."
+mkdir -p /etc/sudoers.d
+cat > /etc/sudoers.d/fnac-freeradius << 'SUDOEOF'
+fnac ALL=(ALL) NOPASSWD: /bin/systemctl start freeradius
+fnac ALL=(ALL) NOPASSWD: /bin/systemctl stop freeradius
+fnac ALL=(ALL) NOPASSWD: /bin/systemctl restart freeradius
+fnac ALL=(ALL) NOPASSWD: /bin/systemctl is-active freeradius
+fnac ALL=(ALL) NOPASSWD: /usr/sbin/freeradius -C
+SUDOEOF
+chmod 440 /etc/sudoers.d/fnac-freeradius
+
 echo "[3/7] Cloning FNAC repository..."
 if [ -d "$INSTALL_DIR" ]; then
     echo "FNAC already installed at $INSTALL_DIR"
