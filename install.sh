@@ -29,7 +29,8 @@ echo "Cleaning up any broken FreeRADIUS installation..."
 systemctl stop freeradius 2>/dev/null || true
 dpkg --remove --force-all freeradius freeradius-utils 2>/dev/null || true
 apt-get clean
-rm -rf /etc/freeradius /var/lib/freeradius /var/cache/freeradius 2>/dev/null || true
+# Don't delete /etc/freeradius - we'll recreate it properly
+rm -rf /var/lib/freeradius /var/cache/freeradius 2>/dev/null || true
 apt-get --fix-broken install -y 2>/dev/null || true
 apt-get autoremove -y 2>/dev/null || true
 
@@ -111,6 +112,14 @@ RADIUSEOF
 
 # Create minimal working modules
 echo "Creating FreeRADIUS modules..."
+
+# Force create the directory and verify it exists
+mkdir -p /etc/freeradius/3.0/mods-enabled
+if [ ! -d "/etc/freeradius/3.0/mods-enabled" ]; then
+    echo "ERROR: Cannot create /etc/freeradius/3.0/mods-enabled"
+    ls -la /etc/freeradius/3.0/
+    exit 1
+fi
 
 # PAP module
 cat > /etc/freeradius/3.0/mods-enabled/pap << 'PAPEOF'
