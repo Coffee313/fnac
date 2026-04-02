@@ -89,13 +89,88 @@ modules {
     always ok {
         rcode = ok
     }
+    always reject {
+        rcode = reject
+    }
+    files {
+        usersfile = ${confdir}/mab_users
+    }
 }
 
-$INCLUDE mods-enabled/
-$INCLUDE sites-enabled/
+server default {
+    authorize {
+        files
+    }
+    authenticate {
+        Auth-Type PAP {
+            pap
+        }
+    }
+    post-auth {
+        Post-Auth-Type REJECT {
+            attr_filter.access_reject
+        }
+    }
+    accounting {
+        detail
+    }
+}
 RADIUSEOF
 chown freerad:freerad /etc/freeradius/3.0/radiusd.conf
 chmod 640 /etc/freeradius/3.0/radiusd.conf
+
+# Create required module configuration files
+echo "Creating FreeRADIUS module configurations..."
+
+# Create pap module (Password Authentication Protocol)
+mkdir -p /etc/freeradius/3.0/mods-available
+cat > /etc/freeradius/3.0/mods-available/pap << 'PAPEOF'
+pap {
+    auto_header = yes
+}
+PAPEOF
+chown freerad:freerad /etc/freeradius/3.0/mods-available/pap
+chmod 640 /etc/freeradius/3.0/mods-available/pap
+
+# Create symlink in mods-enabled
+ln -sf ../mods-available/pap /etc/freeradius/3.0/mods-enabled/pap 2>/dev/null || true
+
+# Create attr_filter module for reject responses
+cat > /etc/freeradius/3.0/mods-available/attr_filter << 'ATTREOF'
+attr_filter attr_filter.access_reject {
+    filename = ${modconfdir}/attr_filter/access-reject
+}
+ATTREOF
+chown freerad:freerad /etc/freeradius/3.0/mods-available/attr_filter
+chmod 640 /etc/freeradius/3.0/mods-available/attr_filter
+
+# Create symlink in mods-enabled
+ln -sf ../mods-available/attr_filter /etc/freeradius/3.0/mods-enabled/attr_filter 2>/dev/null || true
+
+# Create detail module for accounting
+cat > /etc/freeradius/3.0/mods-available/detail << 'DETAILEOF'
+detail {
+    filename = ${radacctdir}/detail
+    header = "%t"
+    permissions = 0600
+    locking = no
+    escape_user_name = no
+}
+DETAILEOF
+chown freerad:freerad /etc/freeradius/3.0/mods-available/detail
+chmod 640 /etc/freeradius/3.0/mods-available/detail
+
+# Create symlink in mods-enabled
+ln -sf ../mods-available/detail /etc/freeradius/3.0/mods-enabled/detail 2>/dev/null || true
+
+# Create attr_filter directory and access-reject file
+mkdir -p /etc/freeradius/3.0/mods-config/attr_filter
+cat > /etc/freeradius/3.0/mods-config/attr_filter/access-reject << 'REJECTEOF'
+# Attributes to allow in Access-Reject responses
+Reply-Message
+REJECTEOF
+chown freerad:freerad /etc/freeradius/3.0/mods-config/attr_filter/access-reject
+chmod 640 /etc/freeradius/3.0/mods-config/attr_filter/access-reject
 
 # Create log file that FreeRADIUS expects
 touch /var/log/freeradius/radius.log
@@ -240,15 +315,19 @@ usermod -a -G freerad fnac 2>/dev/null || true
 # Set directory permissions: 750 (rwxr-x---)
 chmod 750 /etc/freeradius/3.0
 chmod 750 /etc/freeradius/3.0/mods-enabled
+chmod 750 /etc/freeradius/3.0/mods-available
 chmod 750 /etc/freeradius/3.0/sites-enabled
 chmod 750 /etc/freeradius/3.0/mods-config
+chmod 750 /etc/freeradius/3.0/mods-config/attr_filter
 
 # Set file permissions: 660 (rw-rw----)
 # Owner (freerad) can read/write, Group (freerad) can read/write
 chmod 660 /etc/freeradius/3.0/clients.conf 2>/dev/null || true
 chmod 660 /etc/freeradius/3.0/mab_users 2>/dev/null || true
 chmod 660 /etc/freeradius/3.0/radiusd.conf 2>/dev/null || true
-chmod 660 /etc/freeradius/3.0/mods-enabled/files 2>/dev/null || true
+chmod 660 /etc/freeradius/3.0/mods-enabled/* 2>/dev/null || true
+chmod 660 /etc/freeradius/3.0/mods-available/* 2>/dev/null || true
+chmod 660 /etc/freeradius/3.0/mods-config/attr_filter/* 2>/dev/null || true
 chmod 660 /etc/freeradius/3.0/sites-enabled/default 2>/dev/null || true
 
 # Ensure files exist and are owned by freerad
@@ -258,6 +337,20 @@ chown freerad:freerad /etc/freeradius/3.0/clients.conf
 chown freerad:freerad /etc/freeradius/3.0/mab_users
 chmod 660 /etc/freeradius/3.0/clients.conf
 chmod 660 /etc/freeradius/3.0/mab_users
+
+# Add localhost as a client for testing
+cat >> /etc/freeradius/3.0/clients.conf << 'CLIENTEOF'
+
+# Localhost client for testing
+client 127.0.0.1 {
+    ipaddr = 127.0.0.1
+    secret = "testing123"
+    shortname = "localhost"
+    nastype = generic
+}
+CLIENTEOF
+chown freerad:freerad /etc/freeradius/3.0/clients.conf
+chmod 660 /etc/freeradius/3.0/clients.conf
 
 # Make parent directory accessible
 chmod 755 /etc/freeradius
