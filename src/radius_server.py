@@ -110,7 +110,7 @@ class RADIUS_Server:
             return response
 
         # --- Policy evaluation ---
-        decision, vlan_id = self._policy_engine.evaluate_policy(client.client_group_name)
+        decision, vlan_id, policy_name = self._policy_engine.evaluate_policy(client.client_group_name)
 
         if decision == PolicyDecision.ACCEPT_WITH_VLAN:
             response = build_access_accept(packet, device.shared_secret, vlan_id=vlan_id)
@@ -119,6 +119,8 @@ class RADIUS_Server:
                 device_id=device.name,
                 outcome=AuthenticationOutcome.SUCCESS,
                 vlan_id=vlan_id,
+                policy_name=policy_name,
+                policy_decision=decision.value,
             )
         elif decision == PolicyDecision.ACCEPT_WITHOUT_VLAN:
             response = build_access_accept(packet, device.shared_secret, vlan_id=None)
@@ -126,6 +128,8 @@ class RADIUS_Server:
                 client_mac=client_mac,
                 device_id=device.name,
                 outcome=AuthenticationOutcome.SUCCESS,
+                policy_name=policy_name,
+                policy_decision=decision.value,
             )
         else:  # REJECT (including missing policy default)
             response = build_access_reject(packet, device.shared_secret)
@@ -133,6 +137,8 @@ class RADIUS_Server:
                 client_mac=client_mac,
                 device_id=device.name,
                 outcome=AuthenticationOutcome.FAILURE,
+                policy_name=policy_name,
+                policy_decision=decision.value,
             )
 
         return response

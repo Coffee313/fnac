@@ -111,32 +111,37 @@ class TestPolicyDeletion:
 class TestPolicyEvaluation:
     def test_evaluate_accept_with_vlan(self, engine):
         engine.create_policy("policy1", "group1", PolicyDecision.ACCEPT_WITH_VLAN, vlan_id=100)
-        decision, vlan = engine.evaluate_policy("group1")
+        decision, vlan, policy_name = engine.evaluate_policy("group1")
         assert decision == PolicyDecision.ACCEPT_WITH_VLAN
         assert vlan == 100
+        assert policy_name == "policy1"
 
     def test_evaluate_accept_without_vlan(self, engine):
         engine.create_policy("policy1", "group1", PolicyDecision.ACCEPT_WITHOUT_VLAN)
-        decision, vlan = engine.evaluate_policy("group1")
+        decision, vlan, policy_name = engine.evaluate_policy("group1")
         assert decision == PolicyDecision.ACCEPT_WITHOUT_VLAN
         assert vlan is None
+        assert policy_name == "policy1"
 
     def test_evaluate_reject(self, engine):
         engine.create_policy("policy1", "group1", PolicyDecision.REJECT)
-        decision, vlan = engine.evaluate_policy("group1")
+        decision, vlan, policy_name = engine.evaluate_policy("group1")
         assert decision == PolicyDecision.REJECT
+        assert policy_name == "policy1"
 
     def test_evaluate_missing_policy_returns_reject(self, engine):
-        decision, vlan = engine.evaluate_policy("nonexistent-group")
+        decision, vlan, policy_name = engine.evaluate_policy("nonexistent-group")
         assert decision == PolicyDecision.REJECT
         assert vlan is None
+        assert policy_name is None
 
     def test_persistence_across_instances(self, engine, mock_config):
         engine.create_policy("policy1", "group1", PolicyDecision.ACCEPT_WITH_VLAN, vlan_id=42)
         new_engine = Policy_Engine()
-        decision, vlan = new_engine.evaluate_policy("group1")
+        decision, vlan, policy_name = new_engine.evaluate_policy("group1")
         assert decision == PolicyDecision.ACCEPT_WITH_VLAN
         assert vlan == 42
+        assert policy_name == "policy1"
 
 
 # ---------------------------------------------------------------------------
@@ -185,9 +190,10 @@ class TestPropertyPolicyEngine:
         """Feature: simple-radius-server, Property 17: Policy Accept with VLAN Configuration"""
         with _fresh_engine() as eng:
             eng.create_policy(pname, gname, PolicyDecision.ACCEPT_WITH_VLAN, vlan_id=vlan)
-            decision, returned_vlan = eng.evaluate_policy(gname)
+            decision, returned_vlan, policy_name = eng.evaluate_policy(gname)
         assert decision == PolicyDecision.ACCEPT_WITH_VLAN
         assert returned_vlan == vlan
+        assert policy_name == pname
 
     @settings(max_examples=50)
     @given(pname=_text_id, gname=_text_id)
@@ -195,9 +201,10 @@ class TestPropertyPolicyEngine:
         """Feature: simple-radius-server, Property 18: Policy Accept without VLAN Configuration"""
         with _fresh_engine() as eng:
             eng.create_policy(pname, gname, PolicyDecision.ACCEPT_WITHOUT_VLAN)
-            decision, vlan = eng.evaluate_policy(gname)
+            decision, vlan, policy_name = eng.evaluate_policy(gname)
         assert decision == PolicyDecision.ACCEPT_WITHOUT_VLAN
         assert vlan is None
+        assert policy_name == pname
 
     @settings(max_examples=50)
     @given(pname=_text_id, gname=_text_id)
@@ -205,8 +212,9 @@ class TestPropertyPolicyEngine:
         """Feature: simple-radius-server, Property 19: Policy Reject Configuration"""
         with _fresh_engine() as eng:
             eng.create_policy(pname, gname, PolicyDecision.REJECT)
-            decision, vlan = eng.evaluate_policy(gname)
+            decision, vlan, policy_name = eng.evaluate_policy(gname)
         assert decision == PolicyDecision.REJECT
+        assert policy_name == pname
 
     @settings(max_examples=30)
     @given(pname=_text_id, gname=_text_id, vlan1=_vlan_id, vlan2=_vlan_id)
@@ -215,7 +223,7 @@ class TestPropertyPolicyEngine:
         with _fresh_engine() as eng:
             eng.create_policy(pname, gname, PolicyDecision.ACCEPT_WITH_VLAN, vlan_id=vlan1)
             eng.update_policy(pname, vlan_id=vlan2)
-            _, returned_vlan = eng.evaluate_policy(gname)
+            _, returned_vlan, _ = eng.evaluate_policy(gname)
         assert returned_vlan == vlan2
 
     @settings(max_examples=30)

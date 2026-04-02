@@ -69,6 +69,22 @@ def validate_mac_address(mac_address: str) -> str:
     return ':'.join(normalized[i:i+2] for i in range(0, 12, 2))
 
 
+def normalize_mac_no_delimiters(mac_address: str) -> str:
+    """
+    Normalize a MAC address to no-delimiter format (12 hex characters).
+    
+    Args:
+        mac_address: MAC address string (with or without delimiters)
+        
+    Returns:
+        Normalized MAC address without delimiters (e.g., 'aabbccddeeff')
+    """
+    # First validate and normalize to colon format
+    normalized = validate_mac_address(mac_address)
+    # Remove colons
+    return normalized.replace(':', '').lower()
+
+
 class PolicyDecision(Enum):
     """Enumeration of possible policy decisions."""
     ACCEPT_WITH_VLAN = "accept_with_vlan"

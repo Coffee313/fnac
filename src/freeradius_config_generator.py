@@ -145,7 +145,7 @@ class FreeRADIUSConfigGenerator:
             mac_no_colons_upper = mac.replace(":", "").upper()
             
             # Get policy for this client's group
-            decision, vlan_id = self.policy_engine.evaluate_policy(
+            decision, vlan_id, policy_name = self.policy_engine.evaluate_policy(
                 client.client_group_name
             )
 

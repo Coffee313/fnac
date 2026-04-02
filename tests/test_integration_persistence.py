@@ -68,9 +68,10 @@ class TestPersistenceAcrossRestarts:
         pe1.create_policy("p1", "cg1", PolicyDecision.ACCEPT_WITH_VLAN, vlan_id=100)
 
         pe2 = Policy_Engine()
-        decision, vlan = pe2.evaluate_policy("cg1")
+        decision, vlan, policy_name = pe2.evaluate_policy("cg1")
         assert decision == PolicyDecision.ACCEPT_WITH_VLAN
         assert vlan == 100
+        assert policy_name == "p1"
 
     def test_logs_survive_restart(self, patched_paths):
         """Authentication logs created before restart are available after restart."""
@@ -106,9 +107,10 @@ class TestPersistenceAcrossRestarts:
 
         assert dm2.get_device("sw1").device_group_id == "dg1"
         assert cm2.get_client("AA:BB:CC:DD:EE:FF").client_group_id == "cg1"
-        decision, vlan = pe2.evaluate_policy("cg1")
+        decision, vlan, policy_name = pe2.evaluate_policy("cg1")
         assert decision == PolicyDecision.ACCEPT_WITH_VLAN
         assert vlan == 10
+        assert policy_name == "p1"
         logs = lm2.list_logs()
         assert len(logs) == 1
         assert logs[0].outcome == AuthenticationOutcome.SUCCESS

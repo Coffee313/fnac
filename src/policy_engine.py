@@ -161,13 +161,13 @@ class Policy_Engine:
 
     def evaluate_policy(
         self, client_group_name: str
-    ) -> Tuple[PolicyDecision, Optional[int]]:
+    ) -> Tuple[PolicyDecision, Optional[int], Optional[str]]:
         """
         Evaluate the policy for a client group.
 
-        Returns (decision, vlan_id). Defaults to (REJECT, None) if no policy exists.
+        Returns (decision, vlan_id, policy_name). Defaults to (REJECT, None, None) if no policy exists.
         """
         policy = self.get_policy_by_client_group(client_group_name)
         if policy is None:
-            return PolicyDecision.REJECT, None
-        return policy.decision, policy.vlan_id
+            return PolicyDecision.REJECT, None, None
+        return policy.decision, policy.vlan_id, policy.name
