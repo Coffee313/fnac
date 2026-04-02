@@ -266,8 +266,14 @@ mkdir -p /etc/freeradius/3.0/sites-enabled
 mkdir -p /var/lib/freeradius
 mkdir -p /var/run/freeradius
 mkdir -p /var/log/freeradius/radacct
+
+# Set permissions so both freerad and fnac can access
 chown -R freerad:freerad /etc/freeradius /var/lib/freeradius /var/run/freeradius /var/log/freeradius 2>/dev/null || true
 chmod -R 755 /etc/freeradius /var/lib/freeradius /var/run/freeradius /var/log/freeradius 2>/dev/null || true
+
+# Allow fnac user to write to FreeRADIUS config directory
+usermod -a -G freerad fnac 2>/dev/null || true
+chmod -R g+w /etc/freeradius/3.0 2>/dev/null || true
 
 # Ensure files module and mab_users are in place
 cat > /etc/freeradius/3.0/mods-enabled/files << 'FILESEOF'
