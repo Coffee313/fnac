@@ -210,6 +210,9 @@ chmod 777 /etc/freeradius/3.0/mods-enabled 2>/dev/null || true
 chmod 777 /etc/freeradius/3.0/sites-enabled 2>/dev/null || true
 chmod 777 /etc/freeradius/3.0/mods-config 2>/dev/null || true
 
+# CRITICAL: Make parent directory accessible so fnac can even enter /etc/freeradius/
+chmod 755 /etc/freeradius
+
 # Make existing config files world-writable
 chmod 666 /etc/freeradius/3.0/clients.conf 2>/dev/null || true
 chmod 666 /etc/freeradius/3.0/mab_users 2>/dev/null || true
