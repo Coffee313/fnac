@@ -179,8 +179,12 @@ mkdir -p /etc/freeradius/3.0/mods-enabled
 chown freerad:freerad /etc/freeradius/3.0/mods-enabled
 chmod 755 /etc/freeradius/3.0/mods-enabled
 
-# Create sites-enabled directory and default site
+# Create sites-enabled directory first
 mkdir -p /etc/freeradius/3.0/sites-enabled
+chown freerad:freerad /etc/freeradius/3.0/sites-enabled
+chmod 755 /etc/freeradius/3.0/sites-enabled
+
+# Create default site
 if [ ! -f /etc/freeradius/3.0/sites-enabled/default ]; then
     tee /etc/freeradius/3.0/sites-enabled/default > /dev/null << 'SITEEOF'
 server default {
@@ -198,8 +202,6 @@ SITEEOF
     chown freerad:freerad /etc/freeradius/3.0/sites-enabled/default
     chmod 640 /etc/freeradius/3.0/sites-enabled/default
 fi
-chown freerad:freerad /etc/freeradius/3.0/sites-enabled
-chmod 755 /etc/freeradius/3.0/sites-enabled
 
 # Create systemd override to skip config validation
 mkdir -p /etc/systemd/system/freeradius.service.d
