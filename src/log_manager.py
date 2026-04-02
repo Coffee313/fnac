@@ -13,7 +13,7 @@ from src.models import AuthenticationLog, AuthenticationOutcome
 from src.persistence import LogPersistence
 
 # Maximum number of logs to keep in database
-MAX_LOGS = 5000
+MAX_LOGS = 50
 
 
 class Log_Manager:
