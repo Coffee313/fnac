@@ -219,28 +219,37 @@ systemctl unmask freeradius 2>/dev/null || true
 systemctl disable freeradius 2>/dev/null || true
 systemctl stop freeradius 2>/dev/null || true
 
-# CRITICAL FIX: Make /etc/freeradius/3.0 world-writable so FNAC can write config files
-# This is the simplest and most reliable approach - no symlinks, no complex permissions
-chmod 777 /etc/freeradius/3.0
-chmod 777 /etc/freeradius/3.0/mods-enabled 2>/dev/null || true
-chmod 777 /etc/freeradius/3.0/sites-enabled 2>/dev/null || true
-chmod 777 /etc/freeradius/3.0/mods-config 2>/dev/null || true
+# CRITICAL FIX: Set proper permissions for FreeRADIUS config
+# FreeRADIUS refuses to start if config directory is world-writable (777)
+# Solution: Use group-based permissions instead
+# Add fnac user to freerad group so it can write to config files
+usermod -a -G freerad fnac 2>/dev/null || true
 
-# CRITICAL: Make parent directory accessible so fnac can even enter /etc/freeradius/
-chmod 755 /etc/freeradius
+# Set directory permissions: 750 (rwxr-x---)
+# Owner (freerad) can read/write/execute
+# Group (freerad) can read/execute
+chmod 750 /etc/freeradius/3.0
+chmod 750 /etc/freeradius/3.0/mods-enabled 2>/dev/null || true
+chmod 750 /etc/freeradius/3.0/sites-enabled 2>/dev/null || true
+chmod 750 /etc/freeradius/3.0/mods-config 2>/dev/null || true
 
-# Make existing config files world-writable
-chmod 666 /etc/freeradius/3.0/clients.conf 2>/dev/null || true
-chmod 666 /etc/freeradius/3.0/mab_users 2>/dev/null || true
-chmod 666 /etc/freeradius/3.0/radiusd.conf 2>/dev/null || true
-chmod 666 /etc/freeradius/3.0/mods-enabled/files 2>/dev/null || true
-chmod 666 /etc/freeradius/3.0/sites-enabled/default 2>/dev/null || true
+# Set file permissions: 640 (rw-r-----)
+# Owner (freerad) can read/write
+# Group (freerad) can read
+chmod 640 /etc/freeradius/3.0/clients.conf 2>/dev/null || true
+chmod 640 /etc/freeradius/3.0/mab_users 2>/dev/null || true
+chmod 640 /etc/freeradius/3.0/radiusd.conf 2>/dev/null || true
+chmod 640 /etc/freeradius/3.0/mods-enabled/files 2>/dev/null || true
+chmod 640 /etc/freeradius/3.0/sites-enabled/default 2>/dev/null || true
 
-# Ensure files exist and are writable
+# Ensure files exist
 touch /etc/freeradius/3.0/clients.conf
 touch /etc/freeradius/3.0/mab_users
-chmod 666 /etc/freeradius/3.0/clients.conf
-chmod 666 /etc/freeradius/3.0/mab_users
+chmod 640 /etc/freeradius/3.0/clients.conf
+chmod 640 /etc/freeradius/3.0/mab_users
+
+# Make parent directory accessible
+chmod 755 /etc/freeradius
 
 # Start FNAC only
 systemctl start "$SERVICE_NAME"
