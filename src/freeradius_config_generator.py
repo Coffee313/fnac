@@ -199,6 +199,10 @@ class FreeRADIUSConfigGenerator:
             with open(FREERADIUS_CLIENTS_CONF, "w") as f:
                 f.write(content)
 
+            # Set permissions so FreeRADIUS can read it
+            # 664 = rw-rw-r-- (owner and group can read/write, others can read)
+            os.chmod(FREERADIUS_CLIENTS_CONF, 0o664)
+
             logger.info(f"Updated {FREERADIUS_CLIENTS_CONF}")
             return True
 
@@ -234,6 +238,10 @@ class FreeRADIUSConfigGenerator:
             # Write new file
             with open(FREERADIUS_MAB_USERS, "w") as f:
                 f.write(content)
+
+            # Set permissions so FreeRADIUS can read it
+            # 664 = rw-rw-r-- (owner and group can read/write, others can read)
+            os.chmod(FREERADIUS_MAB_USERS, 0o664)
 
             logger.info(f"Updated {FREERADIUS_MAB_USERS}")
             return True
