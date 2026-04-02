@@ -70,14 +70,14 @@ max_requests = 16384
 
 listen {
     type = auth
-    ipaddr = *
+    ipaddr = 0.0.0.0
     port = 1812
     proto = udp
 }
 
 listen {
     type = acct
-    ipaddr = *
+    ipaddr = 0.0.0.0
     port = 1813
     proto = udp
 }
@@ -237,14 +237,14 @@ max_requests = 16384
 
 listen {
     type = auth
-    ipaddr = *
+    ipaddr = 0.0.0.0
     port = 1812
     proto = udp
 }
 
 listen {
     type = acct
-    ipaddr = *
+    ipaddr = 0.0.0.0
     port = 1813
     proto = udp
 }
