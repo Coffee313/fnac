@@ -143,13 +143,13 @@ exec_prefix = /usr
 sysconfdir = /etc
 localstatedir = /var
 sbindir = /usr/sbin
-logdir = ${localstatedir}/log/freeradius
-radacctdir = ${logdir}/radacct
-confdir = ${sysconfdir}/freeradius/3.0
-modconfdir = ${confdir}/mods-config
-certdir = ${confdir}/certs
-cadir = ${confdir}/certs
-run_dir = ${localstatedir}/run/freeradius
+logdir = /var/log/freeradius
+radacctdir = /var/log/freeradius/radacct
+confdir = /etc/freeradius/3.0
+modconfdir = /etc/freeradius/3.0/mods-config
+certdir = /etc/freeradius/3.0/certs
+cadir = /etc/freeradius/3.0/certs
+run_dir = /var/run/freeradius
 
 max_request_time = 30
 cleanup_delay = 5
@@ -180,6 +180,11 @@ RADIUSEOF
 mv /tmp/radiusd.conf /etc/freeradius/3.0/radiusd.conf
 chown freerad:freerad /etc/freeradius/3.0/radiusd.conf
 chmod 640 /etc/freeradius/3.0/radiusd.conf
+
+# Create log directories
+mkdir -p /var/log/freeradius/radacct
+chown -R freerad:freerad /var/log/freeradius
+chmod -R 755 /var/log/freeradius
 
 # Create mods-enabled directory
 mkdir -p /etc/freeradius/3.0/mods-enabled
