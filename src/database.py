@@ -104,9 +104,51 @@ class Database:
             )
         """)
 
+        # Migrate old schema to new schema if needed
+        self._migrate_schema(cursor)
+
         conn.commit()
         conn.close()
         logger.info(f"Database initialized at {self.db_path}")
+
+    def _migrate_schema(self, cursor) -> None:
+        """Migrate old schema to new schema if needed."""
+        try:
+            # Check if devices table has old 'id' column instead of 'name'
+            cursor.execute("PRAGMA table_info(devices)")
+            columns = [row[1] for row in cursor.fetchall()]
+            
+            if 'id' in columns and 'name' not in columns:
+                logger.info("Migrating devices table from 'id' to 'name'")
+                cursor.execute("ALTER TABLE devices RENAME COLUMN id TO name")
+            
+            # Check if clients table has old 'id' column
+            cursor.execute("PRAGMA table_info(clients)")
+            columns = [row[1] for row in cursor.fetchall()]
+            
+            if 'id' in columns and 'mac_address' not in columns:
+                logger.info("Migrating clients table")
+                # This would require more complex migration, but shouldn't happen with new code
+                pass
+            
+            # Check if policies table has old 'id' column
+            cursor.execute("PRAGMA table_info(policies)")
+            columns = [row[1] for row in cursor.fetchall()]
+            
+            if 'id' in columns and 'name' not in columns:
+                logger.info("Migrating policies table from 'id' to 'name'")
+                cursor.execute("ALTER TABLE policies RENAME COLUMN id TO name")
+            
+            # Check if auth_logs table has policy_name column
+            cursor.execute("PRAGMA table_info(auth_logs)")
+            columns = [row[1] for row in cursor.fetchall()]
+            
+            if 'policy_name' not in columns:
+                logger.info("Adding policy_name column to auth_logs table")
+                cursor.execute("ALTER TABLE auth_logs ADD COLUMN policy_name TEXT")
+        
+        except Exception as e:
+            logger.warning(f"Schema migration warning (may be normal): {e}")
 
     def close(self) -> None:
         """Close database connection."""

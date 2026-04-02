@@ -404,12 +404,11 @@ async function loadLogs() {
                     <div class="log-icon">${icon}</div>
                     <div class="log-content">
                         <div class="log-main">
-                            <span class="log-time">${timeStr}</span>
+                            <span class="log-time">${dateStr} ${timeStr}</span>
                             <span class="log-mac">${l.client_mac}</span>
                             <span class="log-status">${isSuccess ? 'ACCEPT' : 'REJECT'}${vlanInfo}${policyInfo}</span>
                         </div>
                         <div class="log-meta">
-                            <span class="log-date">${dateStr}</span>
                             <span class="log-device">Device: ${l.device_id}</span>
                         </div>
                     </div>
