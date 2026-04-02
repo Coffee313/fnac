@@ -44,6 +44,10 @@ htmlcov/
 *.json
 data/
 logs/
+fnac.db
+fnac.db-shm
+fnac.db-wal
+DEBUG_RADPERF.md
 
 # Temporary files
 *.tmp
