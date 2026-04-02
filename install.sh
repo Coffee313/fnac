@@ -124,6 +124,12 @@ systemctl daemon-reload
 systemctl enable "$SERVICE_NAME"
 
 echo "[7/7] Starting services..."
+
+# Disable FreeRADIUS from auto-starting
+systemctl disable freeradius 2>/dev/null || true
+systemctl stop freeradius 2>/dev/null || true
+
+# Start FNAC
 systemctl start "$SERVICE_NAME"
 
 # Wait for FNAC to start
@@ -221,7 +227,7 @@ mv /tmp/override.conf /etc/systemd/system/freeradius.service.d/override.conf
 
 systemctl daemon-reload
 
-# Start FreeRADIUS
+# Now enable and start FreeRADIUS
 echo "Starting FreeRADIUS service..."
 systemctl enable freeradius 2>/dev/null || true
 systemctl start freeradius 2>/dev/null || true
