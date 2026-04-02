@@ -196,7 +196,7 @@ class ConfigImporter:
         for policy in policies:
             try:
                 self.policy_engine.create_policy(
-                    name=policy["name"],
+                    policy_name=policy["name"],
                     client_group_name=policy["client_group_name"],
                     decision=PolicyDecision(policy["decision"]),
                     vlan_id=policy.get("vlan_id"),
