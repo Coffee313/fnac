@@ -110,6 +110,7 @@ class Client:
     """Represents an endpoint device identified by MAC address."""
     mac_address: str
     client_group_name: str
+    name: str = ""
     created_at: datetime = field(default_factory=datetime.utcnow)
     updated_at: datetime = field(default_factory=datetime.utcnow)
     

@@ -154,6 +154,7 @@ class ClientPersistence:
                 clients.append(Client(
                     mac_address=mac_address,
                     client_group_name=row_dict['client_group_name'],
+                    name=row_dict.get('name', ''),
                     created_at=datetime.fromisoformat(row_dict['created_at']),
                     updated_at=datetime.fromisoformat(row_dict['updated_at']),
                 ))
@@ -176,9 +177,9 @@ class ClientPersistence:
         for client in clients:
             try:
                 cursor.execute("""
-                    INSERT INTO clients (mac_address, client_group_name, created_at, updated_at)
-                    VALUES (?, ?, ?, ?)
-                """, (client.mac_address, client.client_group_name,
+                    INSERT INTO clients (mac_address, name, client_group_name, created_at, updated_at)
+                    VALUES (?, ?, ?, ?, ?)
+                """, (client.mac_address, client.name, client.client_group_name,
                       client.created_at.isoformat(), client.updated_at.isoformat()))
             except Exception as e:
                 logger.warning(f"Error saving client {client.mac_address}: {e}")

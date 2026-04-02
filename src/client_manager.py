@@ -106,7 +106,8 @@ class Client_Manager:
     def create_client(
         self,
         mac_address: str,
-        client_group_name: str
+        client_group_name: str,
+        name: str = ""
     ) -> Client:
         """
         Create a new client with the specified MAC address and group assignment.
@@ -114,6 +115,7 @@ class Client_Manager:
         Args:
             mac_address: MAC address of the client (format: XX:XX:XX:XX:XX:XX)
             client_group_name: Name of the client group to assign to
+            name: Optional name/description for the client
             
         Returns:
             The created Client object
@@ -141,7 +143,8 @@ class Client_Manager:
         
         client = Client(
             mac_address=mac_address,
-            client_group_name=client_group_name
+            client_group_name=client_group_name,
+            name=name
         )
         
         self._clients[mac_address] = client

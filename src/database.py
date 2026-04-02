@@ -69,6 +69,7 @@ class Database:
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS clients (
                 mac_address TEXT PRIMARY KEY,
+                name TEXT DEFAULT '',
                 client_group_name TEXT NOT NULL,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -133,6 +134,10 @@ class Database:
             if 'client_group_id' in columns and 'client_group_name' not in columns:
                 logger.info("Migrating clients table from 'client_group_id' to 'client_group_name'")
                 cursor.execute("ALTER TABLE clients RENAME COLUMN client_group_id TO client_group_name")
+            
+            if 'name' not in columns:
+                logger.info("Adding name column to clients table")
+                cursor.execute("ALTER TABLE clients ADD COLUMN name TEXT DEFAULT ''")
             
             # Check if policies table has old 'id' column
             cursor.execute("PRAGMA table_info(policies)")

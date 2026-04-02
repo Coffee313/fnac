@@ -80,6 +80,7 @@ class ConfigExporter:
         return [
             {
                 "mac_address": c.mac_address,
+                "name": c.name,
                 "client_group_name": c.client_group_name,
                 "created_at": c.created_at.isoformat(),
             }
@@ -180,6 +181,7 @@ class ConfigImporter:
                 self.client_manager.create_client(
                     mac_address=client["mac_address"],
                     client_group_name=client["client_group_name"],
+                    name=client.get("name", "")
                 )
                 results["success"] += 1
             except Exception as e:

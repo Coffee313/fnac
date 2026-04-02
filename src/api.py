@@ -107,6 +107,7 @@ def create_app(
     def _client_to_dict(c):
         return {
             "mac_address": c.mac_address,
+            "name": c.name,
             "client_group_name": c.client_group_name,
             "created_at": c.created_at.isoformat(),
             "updated_at": c.updated_at.isoformat(),
@@ -238,7 +239,11 @@ def create_app(
         if not body.get("client_group_name"):
             return _err("Field 'client_group_name' is required")
         try:
-            client = client_manager.create_client(body["mac_address"], body["client_group_name"])
+            client = client_manager.create_client(
+                body["mac_address"], 
+                body["client_group_name"],
+                name=body.get("name", "")
+            )
             _update_freeradius_config()
             return jsonify(_client_to_dict(client)), 201
         except InvalidMACAddressError as e:

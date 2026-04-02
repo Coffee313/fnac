@@ -195,6 +195,7 @@ async function loadClients() {
             <div class="item">
                 <div class="item-info">
                     <p><strong>MAC:</strong> ${c.mac_address}</p>
+                    ${c.name ? `<p><strong>Name:</strong> ${c.name}</p>` : ''}
                     <p><strong>Group:</strong> ${c.client_group_name}</p>
                 </div>
                 <div class="item-actions">
@@ -232,12 +233,13 @@ document.getElementById('clientGroupForm').addEventListener('submit', async (e) 
 document.getElementById('clientForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     const mac_address = document.getElementById('clientMac').value;
+    const name = document.getElementById('clientName').value;
     const client_group_name = document.getElementById('clientGroup').value;
     try {
         const res = await fetch(`${API_URL}/clients`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ mac_address, client_group_name })
+            body: JSON.stringify({ mac_address, name, client_group_name })
         });
         if (res.ok) {
             showMessage('Client created');
