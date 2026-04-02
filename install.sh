@@ -203,110 +203,25 @@ systemctl unmask freeradius 2>/dev/null || true
 systemctl disable freeradius 2>/dev/null || true
 systemctl stop freeradius 2>/dev/null || true
 
-# Create FNAC-owned FreeRADIUS config directory
-mkdir -p /opt/fnac/freeradius_config
-chown -R fnac:fnac /opt/fnac/freeradius_config
-chmod -R 755 /opt/fnac/freeradius_config
+# CRITICAL FIX: Make /etc/freeradius/3.0 world-writable so FNAC can write config files
+# This is the simplest and most reliable approach - no symlinks, no complex permissions
+chmod 777 /etc/freeradius/3.0
+chmod 777 /etc/freeradius/3.0/mods-enabled 2>/dev/null || true
+chmod 777 /etc/freeradius/3.0/sites-enabled 2>/dev/null || true
+chmod 777 /etc/freeradius/3.0/mods-config 2>/dev/null || true
 
-# Create symlink from /etc/freeradius/3.0 to FNAC's config directory
-rm -rf /etc/freeradius/3.0
-ln -s /opt/fnac/freeradius_config /etc/freeradius/3.0
+# Make existing config files world-writable
+chmod 666 /etc/freeradius/3.0/clients.conf 2>/dev/null || true
+chmod 666 /etc/freeradius/3.0/mab_users 2>/dev/null || true
+chmod 666 /etc/freeradius/3.0/radiusd.conf 2>/dev/null || true
+chmod 666 /etc/freeradius/3.0/mods-enabled/files 2>/dev/null || true
+chmod 666 /etc/freeradius/3.0/sites-enabled/default 2>/dev/null || true
 
-# Initialize FNAC's FreeRADIUS config directory
-mkdir -p /opt/fnac/freeradius_config/mods-enabled
-mkdir -p /opt/fnac/freeradius_config/sites-enabled
-mkdir -p /opt/fnac/freeradius_config/mods-config/files
-
-# Create initial config files in FNAC directory
-cat > /opt/fnac/freeradius_config/radiusd.conf << 'RADIUSEOF'
-prefix = /usr
-exec_prefix = /usr
-sysconfdir = /etc
-localstatedir = /var
-sbindir = /usr/sbin
-logdir = /var/log/freeradius
-radacctdir = /var/log/freeradius/radacct
-confdir = /etc/freeradius/3.0
-modconfdir = /etc/freeradius/3.0/mods-config
-certdir = /etc/freeradius/3.0/certs
-cadir = /etc/freeradius/3.0/certs
-run_dir = /var/run/freeradius
-
-# Set umask so log files are readable by all users
-umask = 0022
-
-max_request_time = 30
-cleanup_delay = 5
-max_requests = 16384
-
-listen {
-    type = auth
-    ipaddr = 0.0.0.0
-    port = 1812
-    proto = udp
-}
-
-listen {
-    type = acct
-    ipaddr = 0.0.0.0
-    port = 1813
-    proto = udp
-}
-
-modules {
-    always ok {
-        rcode = ok
-    }
-}
-
-$INCLUDE mods-enabled/
-$INCLUDE sites-enabled/
-RADIUSEOF
-
-cat > /opt/fnac/freeradius_config/sites-enabled/default << 'SITEEOF'
-server default {
-    authorize {
-        ok
-    }
-    authenticate {
-        ok
-    }
-    accounting {
-        ok
-    }
-    session {
-        ok
-    }
-    post-auth {
-        ok
-    }
-}
-SITEEOF
-
-cat > /opt/fnac/freeradius_config/mods-enabled/files << 'FILESEOF'
-files {
-	usersfile = ${confdir}/mab_users
-}
-FILESEOF
-
-touch /opt/fnac/freeradius_config/clients.conf
-touch /opt/fnac/freeradius_config/mab_users
-
-# Set permissions so FNAC can write to everything
-chown -R fnac:fnac /opt/fnac/freeradius_config
-
-# Make directories world-writable so FNAC can create/modify files
-chmod 777 /opt/fnac/freeradius_config
-chmod 777 /opt/fnac/freeradius_config/mods-enabled
-chmod 777 /opt/fnac/freeradius_config/sites-enabled
-chmod 777 /opt/fnac/freeradius_config/mods-config
-
-# Make config files world-readable and writable so both FNAC and FreeRADIUS can access them
-chmod 666 /opt/fnac/freeradius_config/clients.conf
-chmod 666 /opt/fnac/freeradius_config/mab_users
-chmod 666 /opt/fnac/freeradius_config/radiusd.conf
-chmod 666 /opt/fnac/freeradius_config/mods-enabled/files
-chmod 666 /opt/fnac/freeradius_config/sites-enabled/default
+# Ensure files exist and are writable
+touch /etc/freeradius/3.0/clients.conf
+touch /etc/freeradius/3.0/mab_users
+chmod 666 /etc/freeradius/3.0/clients.conf
+chmod 666 /etc/freeradius/3.0/mab_users
 
 # Start FNAC only
 systemctl start "$SERVICE_NAME"
