@@ -126,13 +126,12 @@ systemctl enable "$SERVICE_NAME"
 echo "[7/7] Starting services..."
 systemctl start "$SERVICE_NAME"
 
-# Wait for FNAC to generate FreeRADIUS config
-sleep 3
+# Wait for FNAC to start and generate config
+sleep 5
 
-# Create systemd override to disable config validation on startup
-echo "Configuring FreeRADIUS service..."
+# Create systemd override to skip config validation
 mkdir -p /etc/systemd/system/freeradius.service.d
-cat > /etc/systemd/system/freeradius.service.d/override.conf << 'EOF'
+tee /etc/systemd/system/freeradius.service.d/override.conf > /dev/null << 'EOF'
 [Service]
 ExecStartPre=
 ExecStart=
@@ -141,78 +140,18 @@ EOF
 
 systemctl daemon-reload
 
-# Create minimal radiusd.conf if it doesn't exist or is broken
-echo "Creating minimal FreeRADIUS configuration..."
-if [ ! -f /etc/freeradius/3.0/radiusd.conf ] || ! /usr/sbin/freeradius -C -d /etc/freeradius/3.0 2>/dev/null; then
-    cat > /etc/freeradius/3.0/radiusd.conf << 'RADIUSEOF'
-prefix = /usr
-exec_prefix = /usr
-sysconfdir = /etc
-localstatedir = /var
-sbindir = /usr/sbin
-logdir = ${localstatedir}/log/freeradius
-radacctdir = ${logdir}/radacct
-confdir = ${sysconfdir}/freeradius/3.0
-modconfdir = ${confdir}/mods-config
-certdir = ${confdir}/certs
-cadir = ${confdir}/certs
-run_dir = ${localstatedir}/run/freeradius
-
-user = freerad
-group = freerad
-
-max_request_time = 30
-cleanup_delay = 5
-max_requests = 16384
-listen {
-    type = auth
-    ipaddr = *
-    port = 1812
-    proto = udp
-}
-listen {
-    type = acct
-    ipaddr = *
-    port = 1813
-    proto = udp
-}
-$INCLUDE mods-enabled/
-$INCLUDE sites-enabled/
-RADIUSEOF
-    chown freerad:freerad /etc/freeradius/3.0/radiusd.conf
-    chmod 640 /etc/freeradius/3.0/radiusd.conf
-fi
-
-# Create mods-enabled and sites-enabled directories
-mkdir -p /etc/freeradius/3.0/mods-enabled
-mkdir -p /etc/freeradius/3.0/sites-enabled
-chown -R freerad:freerad /etc/freeradius/3.0/mods-enabled /etc/freeradius/3.0/sites-enabled
-chmod -R 755 /etc/freeradius/3.0/mods-enabled /etc/freeradius/3.0/sites-enabled
-
-# Create a minimal default site config
-mkdir -p /etc/freeradius/3.0/sites-enabled
-if [ ! -f /etc/freeradius/3.0/sites-enabled/default ]; then
-    cat > /etc/freeradius/3.0/sites-enabled/default << 'SITEEOF'
-server default {
-    authorize {
-        ok
-    }
-    authenticate {
-        ok
-    }
-    accounting {
-        ok
-    }
-}
-SITEEOF
-    chown freerad:freerad /etc/freeradius/3.0/sites-enabled/default
-    chmod 640 /etc/freeradius/3.0/sites-enabled/default
-fi
-
-# Now enable and start FreeRADIUS with proper config
+# Start FreeRADIUS
 echo "Starting FreeRADIUS service..."
 systemctl enable freeradius 2>/dev/null || true
 systemctl start freeradius 2>/dev/null || true
+sleep 2
+
+# Check if FreeRADIUS started successfully
+if systemctl is-active --quiet freeradius; then
+    echo "FreeRADIUS started successfully"
+else
+    echo "Warning: FreeRADIUS failed to start. Check logs with: sudo journalctl -u freeradius -n 50"
+fi
 
 echo ""
 echo "=========================================="
@@ -220,12 +159,18 @@ echo "Installation Complete!"
 echo "=========================================="
 echo ""
 echo "FNAC is now running at: http://localhost:5000"
+echo "FreeRADIUS is running on UDP port 1812"
 echo ""
 echo "Useful commands:"
-echo "  Start:   systemctl start $SERVICE_NAME"
-echo "  Stop:    systemctl stop $SERVICE_NAME"
-echo "  Status:  systemctl status $SERVICE_NAME"
-echo "  Logs:    journalctl -u $SERVICE_NAME -f"
+echo "  Start FNAC:      systemctl start fnac"
+echo "  Stop FNAC:       systemctl stop fnac"
+echo "  Status FNAC:     systemctl status fnac"
+echo "  Logs FNAC:       journalctl -u fnac -f"
+echo ""
+echo "  Start FreeRADIUS:   sudo systemctl start freeradius"
+echo "  Stop FreeRADIUS:    sudo systemctl stop freeradius"
+echo "  Status FreeRADIUS:  sudo systemctl status freeradius"
+echo "  Logs FreeRADIUS:    sudo journalctl -u freeradius -f"
 echo ""
 echo "Next steps:"
 echo "1. Open http://localhost:5000 in your browser"
