@@ -200,6 +200,17 @@ class FreeRADIUSConfigGenerator:
                 f.write(content)
 
             logger.info(f"Updated {FREERADIUS_CLIENTS_CONF}")
+            
+            # Unmask FreeRADIUS on first config write
+            try:
+                subprocess.run(
+                    ["sudo", "systemctl", "unmask", "freeradius"],
+                    capture_output=True,
+                    timeout=5,
+                )
+            except Exception as e:
+                logger.warning(f"Could not unmask FreeRADIUS: {e}")
+            
             return True
 
         except PermissionError:
@@ -248,8 +259,7 @@ class FreeRADIUSConfigGenerator:
 
     def reload_freeradius(self) -> bool:
         """
-        Restart FreeRADIUS to pick up new configuration.
-        Always uses restart instead of reload to ensure systemd override is applied.
+        Start or restart FreeRADIUS to pick up new configuration.
 
         Returns:
             True if successful, False otherwise
@@ -264,31 +274,44 @@ class FreeRADIUSConfigGenerator:
             
             is_running = status_result.returncode == 0
             
-            if not is_running:
-                logger.info("FreeRADIUS is not running, skipping reload")
-                return True
-            
-            # Always restart to ensure systemd override is applied
-            logger.info("Restarting FreeRADIUS to apply new configuration...")
-            result = subprocess.run(
-                ["sudo", "systemctl", "restart", "freeradius"],
-                capture_output=True,
-                timeout=10,
-            )
-            
-            if result.returncode == 0:
-                logger.info("FreeRADIUS restarted successfully")
-                return True
+            if is_running:
+                # Restart if already running
+                logger.info("Restarting FreeRADIUS to apply new configuration...")
+                result = subprocess.run(
+                    ["sudo", "systemctl", "restart", "freeradius"],
+                    capture_output=True,
+                    timeout=10,
+                )
+                
+                if result.returncode == 0:
+                    logger.info("FreeRADIUS restarted successfully")
+                    return True
+                else:
+                    error_msg = result.stderr.decode() if result.stderr else "Unknown error"
+                    logger.error(f"Failed to restart FreeRADIUS: {error_msg}")
+                    return False
             else:
-                error_msg = result.stderr.decode() if result.stderr else "Unknown error"
-                logger.error(f"Failed to restart FreeRADIUS: {error_msg}")
-                return False
+                # Start if not running
+                logger.info("Starting FreeRADIUS...")
+                result = subprocess.run(
+                    ["sudo", "systemctl", "start", "freeradius"],
+                    capture_output=True,
+                    timeout=10,
+                )
+                
+                if result.returncode == 0:
+                    logger.info("FreeRADIUS started successfully")
+                    return True
+                else:
+                    error_msg = result.stderr.decode() if result.stderr else "Unknown error"
+                    logger.error(f"Failed to start FreeRADIUS: {error_msg}")
+                    return False
 
         except subprocess.TimeoutExpired:
-            logger.error("FreeRADIUS restart timed out")
+            logger.error("FreeRADIUS operation timed out")
             return False
         except Exception as e:
-            logger.error(f"Error restarting FreeRADIUS: {e}")
+            logger.error(f"Error managing FreeRADIUS: {e}")
             return False
 
     def update_all_configs(self, reload: bool = True, dry_run: bool = False) -> bool:

@@ -356,11 +356,12 @@ systemctl enable "$SERVICE_NAME"
 
 echo "[7/7] Starting services..."
 
-# Ensure FreeRADIUS is disabled from auto-starting
+# Ensure FreeRADIUS is completely disabled and stopped
 systemctl disable freeradius 2>/dev/null || true
 systemctl stop freeradius 2>/dev/null || true
+systemctl mask freeradius 2>/dev/null || true
 
-# Start FNAC
+# Start FNAC only
 systemctl start "$SERVICE_NAME"
 
 # Wait for FNAC to start
