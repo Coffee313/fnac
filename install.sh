@@ -129,6 +129,78 @@ systemctl start "$SERVICE_NAME"
 # Wait for FNAC to start and generate config
 sleep 5
 
+# Create minimal radiusd.conf if missing
+if [ ! -f /etc/freeradius/3.0/radiusd.conf ]; then
+    echo "Creating minimal FreeRADIUS configuration..."
+    tee /etc/freeradius/3.0/radiusd.conf > /dev/null << 'RADIUSEOF'
+prefix = /usr
+exec_prefix = /usr
+sysconfdir = /etc
+localstatedir = /var
+sbindir = /usr/sbin
+logdir = ${localstatedir}/log/freeradius
+radacctdir = ${logdir}/radacct
+confdir = ${sysconfdir}/freeradius/3.0
+modconfdir = ${confdir}/mods-config
+certdir = ${confdir}/certs
+cadir = ${confdir}/certs
+run_dir = ${localstatedir}/run/freeradius
+
+user = freerad
+group = freerad
+
+max_request_time = 30
+cleanup_delay = 5
+max_requests = 16384
+
+listen {
+    type = auth
+    ipaddr = *
+    port = 1812
+    proto = udp
+}
+
+listen {
+    type = acct
+    ipaddr = *
+    port = 1813
+    proto = udp
+}
+
+$INCLUDE mods-enabled/
+$INCLUDE sites-enabled/
+RADIUSEOF
+    chown freerad:freerad /etc/freeradius/3.0/radiusd.conf
+    chmod 640 /etc/freeradius/3.0/radiusd.conf
+fi
+
+# Create mods-enabled directory
+mkdir -p /etc/freeradius/3.0/mods-enabled
+chown freerad:freerad /etc/freeradius/3.0/mods-enabled
+chmod 755 /etc/freeradius/3.0/mods-enabled
+
+# Create sites-enabled directory and default site
+mkdir -p /etc/freeradius/3.0/sites-enabled
+if [ ! -f /etc/freeradius/3.0/sites-enabled/default ]; then
+    tee /etc/freeradius/3.0/sites-enabled/default > /dev/null << 'SITEEOF'
+server default {
+    authorize {
+        ok
+    }
+    authenticate {
+        ok
+    }
+    accounting {
+        ok
+    }
+}
+SITEEOF
+    chown freerad:freerad /etc/freeradius/3.0/sites-enabled/default
+    chmod 640 /etc/freeradius/3.0/sites-enabled/default
+fi
+chown freerad:freerad /etc/freeradius/3.0/sites-enabled
+chmod 755 /etc/freeradius/3.0/sites-enabled
+
 # Create systemd override to skip config validation
 mkdir -p /etc/systemd/system/freeradius.service.d
 tee /etc/systemd/system/freeradius.service.d/override.conf > /dev/null << 'EOF'
