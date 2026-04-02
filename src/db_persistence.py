@@ -348,19 +348,52 @@ class LogPersistence:
 
     @staticmethod
     def save_log(log: AuthenticationLog) -> None:
-        """Save a single log entry to database."""
-        db = Database()
-        conn = db.get_connection()
-        cursor = conn.cursor()
+        """
+        Save a single log entry to database.
         
-        cursor.execute("""
-            INSERT INTO auth_logs (id, timestamp, client_mac, device_id, outcome, vlan_id, policy_decision, policy_name, created_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """, (log.id, log.timestamp.isoformat(), log.client_mac, log.device_id,
-              log.outcome.value, log.vlan_id, log.policy_decision, log.policy_name, log.created_at.isoformat()))
+        Uses async queue if available, falls back to sync write if not.
+        """
+        try:
+            # Try to use async writer if available
+            from src.async_log_writer import get_async_writer
+            import asyncio
+            
+            writer = get_async_writer()
+            if writer.running:
+                # Queue the log asynchronously
+                try:
+                    loop = asyncio.get_event_loop()
+                    if loop.is_running():
+                        # We're in an async context, use create_task
+                        asyncio.create_task(writer.log_async(log))
+                    else:
+                        # We're in sync context, run the coroutine
+                        loop.run_until_complete(writer.log_async(log))
+                except RuntimeError:
+                    # No event loop, fall back to sync write
+                    _save_log_sync(log)
+                return
+        except Exception as e:
+            logger.debug(f"Async logging not available: {e}")
         
-        conn.commit()
-        conn.close()
+        # Fall back to synchronous write
+        _save_log_sync(log)
+
+
+def _save_log_sync(log: AuthenticationLog) -> None:
+    """Synchronous log write (fallback)."""
+    db = Database()
+    conn = db.get_connection()
+    cursor = conn.cursor()
+    
+    cursor.execute("""
+        INSERT INTO auth_logs (id, timestamp, client_mac, device_id, outcome, vlan_id, policy_decision, policy_name, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    """, (log.id, log.timestamp.isoformat(), log.client_mac, log.device_id,
+          log.outcome.value, log.vlan_id, log.policy_decision, log.policy_name, log.created_at.isoformat()))
+    
+    conn.commit()
+    conn.close()
 
     @staticmethod
     def save_logs(logs: List[AuthenticationLog]) -> None:

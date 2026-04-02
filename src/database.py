@@ -29,10 +29,44 @@ class Database:
         conn.row_factory = sqlite3.Row
         return conn
 
+    def _optimize_sqlite(self, cursor) -> None:
+        """Optimize SQLite for high throughput."""
+        try:
+            # Write-Ahead Logging for better concurrency
+            cursor.execute("PRAGMA journal_mode=WAL")
+            
+            # Faster writes (acceptable for most use cases)
+            cursor.execute("PRAGMA synchronous=NORMAL")
+            
+            # Larger cache for better performance
+            cursor.execute("PRAGMA cache_size=10000")
+            
+            # Use memory for temp storage
+            cursor.execute("PRAGMA temp_store=MEMORY")
+            
+            # Memory-mapped I/O for faster access
+            cursor.execute("PRAGMA mmap_size=30000000000")
+            
+            # Increase timeout for lock contention
+            cursor.execute("PRAGMA busy_timeout=5000")
+            
+            logger.info("SQLite optimizations applied")
+        except Exception as e:
+            logger.warning(f"Could not apply SQLite optimizations: {e}")
+
+    def get_connection(self) -> sqlite3.Connection:
+        """Get a database connection."""
+        conn = sqlite3.connect(self.db_path)
+        conn.row_factory = sqlite3.Row
+        return conn
+
     def init_db(self) -> None:
         """Initialize database schema."""
         conn = self.get_connection()
         cursor = conn.cursor()
+        
+        # Optimize SQLite for high throughput
+        self._optimize_sqlite(cursor)
 
         # Device Groups table
         cursor.execute("""

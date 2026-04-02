@@ -33,6 +33,21 @@ def _log_parser_thread(log_parser: FreeRADIUSLogParser) -> None:
         time.sleep(2)
 
 
+async def _init_async_logging() -> None:
+    """Initialize async logging."""
+    from src.async_log_writer import init_async_logging
+    await init_async_logging()
+
+
+async def _shutdown_async_logging() -> None:
+    """Shutdown async logging."""
+    from src.async_log_writer import shutdown_async_logging
+    await shutdown_async_logging()
+
+
+def _log_parser_thread(log_parser: FreeRADIUSLogParser) -> None:
+
+
 def main() -> int:
     """
     Initialize and start the RADIUS server.
@@ -46,6 +61,12 @@ def main() -> int:
         logger = logging.getLogger(__name__)
         
         logger.info("Starting RADIUS server...")
+        
+        # Initialize async logging
+        import asyncio
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        loop.run_until_complete(_init_async_logging())
         
         # Initialize managers
         device_manager = Device_Manager()
@@ -111,6 +132,11 @@ def main() -> int:
                 threading.Event().wait(1)
         except KeyboardInterrupt:
             logger.info("Shutting down...")
+            # Shutdown async logging
+            import asyncio
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            loop.run_until_complete(_shutdown_async_logging())
             return 0
         
     except Exception as e:
