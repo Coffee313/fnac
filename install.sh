@@ -232,8 +232,8 @@ mv /tmp/override.conf /etc/systemd/system/freeradius.service.d/override.conf
 
 systemctl daemon-reload
 
-# Enable FreeRADIUS to start on boot
-systemctl enable freeradius 2>/dev/null || true
+# Disable FreeRADIUS from starting on boot - FNAC will manage it
+systemctl disable freeradius 2>/dev/null || true
 
 echo ""
 echo "=========================================="
