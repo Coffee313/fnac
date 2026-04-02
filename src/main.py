@@ -45,9 +45,6 @@ async def _shutdown_async_logging() -> None:
     await shutdown_async_logging()
 
 
-def _log_parser_thread(log_parser: FreeRADIUSLogParser) -> None:
-
-
 def main() -> int:
     """
     Initialize and start the RADIUS server.
