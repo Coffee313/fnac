@@ -114,9 +114,13 @@ class Database:
     def _migrate_schema(self, cursor) -> None:
         """Migrate old schema to new schema if needed."""
         try:
-            # Check if devices table has old 'id' column instead of 'name'
+            # Check if devices table has old 'device_group_id' instead of 'device_group_name'
             cursor.execute("PRAGMA table_info(devices)")
             columns = {row[1]: row for row in cursor.fetchall()}
+            
+            if 'device_group_id' in columns and 'device_group_name' not in columns:
+                logger.info("Migrating devices table from 'device_group_id' to 'device_group_name'")
+                cursor.execute("ALTER TABLE devices RENAME COLUMN device_group_id TO device_group_name")
             
             if 'id' in columns and 'name' not in columns:
                 logger.info("Migrating devices table from 'id' to 'name'")
@@ -131,9 +135,6 @@ class Database:
                 cursor.execute("ALTER TABLE policies RENAME COLUMN id TO name")
             
             # Check if policies table has old 'client_group_id' instead of 'client_group_name'
-            cursor.execute("PRAGMA table_info(policies)")
-            columns = {row[1]: row for row in cursor.fetchall()}
-            
             if 'client_group_id' in columns and 'client_group_name' not in columns:
                 logger.info("Migrating policies table from 'client_group_id' to 'client_group_name'")
                 cursor.execute("ALTER TABLE policies RENAME COLUMN client_group_id TO client_group_name")

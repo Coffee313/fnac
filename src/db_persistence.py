@@ -63,11 +63,23 @@ class DevicePersistence:
         
         # Insert new devices
         for device in devices:
-            cursor.execute("""
-                INSERT INTO devices (name, ip_address, shared_secret, device_group_name, created_at, updated_at)
-                VALUES (?, ?, ?, ?, ?, ?)
-            """, (device.name, device.ip_address, device.shared_secret, device.device_group_name,
-                  device.created_at.isoformat(), device.updated_at.isoformat()))
+            try:
+                cursor.execute("""
+                    INSERT INTO devices (name, ip_address, shared_secret, device_group_name, created_at, updated_at)
+                    VALUES (?, ?, ?, ?, ?, ?)
+                """, (device.name, device.ip_address, device.shared_secret, device.device_group_name,
+                      device.created_at.isoformat(), device.updated_at.isoformat()))
+            except Exception as e:
+                logger.warning(f"Error saving device {device.name}: {e}")
+                # Try with old column name if new one fails
+                try:
+                    cursor.execute("""
+                        INSERT INTO devices (name, ip_address, shared_secret, device_group_id, created_at, updated_at)
+                        VALUES (?, ?, ?, ?, ?, ?)
+                    """, (device.name, device.ip_address, device.shared_secret, device.device_group_name,
+                          device.created_at.isoformat(), device.updated_at.isoformat()))
+                except Exception as e2:
+                    logger.error(f"Failed to save device {device.name}: {e2}")
         
         conn.commit()
         conn.close()
@@ -251,11 +263,23 @@ class PolicyPersistence:
         
         # Insert new policies
         for policy in policies:
-            cursor.execute("""
-                INSERT INTO policies (name, client_group_name, decision, vlan_id, created_at, updated_at)
-                VALUES (?, ?, ?, ?, ?, ?)
-            """, (policy.name, policy.client_group_name, policy.decision.value, policy.vlan_id,
-                  policy.created_at.isoformat(), policy.updated_at.isoformat()))
+            try:
+                cursor.execute("""
+                    INSERT INTO policies (name, client_group_name, decision, vlan_id, created_at, updated_at)
+                    VALUES (?, ?, ?, ?, ?, ?)
+                """, (policy.name, policy.client_group_name, policy.decision.value, policy.vlan_id,
+                      policy.created_at.isoformat(), policy.updated_at.isoformat()))
+            except Exception as e:
+                logger.warning(f"Error saving policy {policy.name}: {e}")
+                # Try with old column name if new one fails
+                try:
+                    cursor.execute("""
+                        INSERT INTO policies (name, client_group_id, decision, vlan_id, created_at, updated_at)
+                        VALUES (?, ?, ?, ?, ?, ?)
+                    """, (policy.name, policy.client_group_name, policy.decision.value, policy.vlan_id,
+                          policy.created_at.isoformat(), policy.updated_at.isoformat()))
+                except Exception as e2:
+                    logger.error(f"Failed to save policy {policy.name}: {e2}")
         
         conn.commit()
         conn.close()
