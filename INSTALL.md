@@ -6,30 +6,43 @@
 - Linux system (Ubuntu 20.04+ or Debian 11+)
 - Root or sudo access
 - Internet connection
+- Git configured with SSH keys (recommended) or HTTPS credentials
 
 ### Installation
 
+**Option 1: Using SSH (Recommended)**
 ```bash
-# Download and run the installation script
-sudo bash -c "$(curl -fsSL https://raw.githubusercontent.com/yourusername/fnac/main/install.sh)"
-```
-
-Or manually:
-
-```bash
-# Clone the repository
-git clone https://github.com/yourusername/fnac.git
+# Clone the repository first
+git clone git@github.com:yourusername/fnac.git
 cd fnac
 
 # Run the installation script
+sudo bash install.sh git@github.com:yourusername/fnac.git
+```
+
+**Option 2: Using HTTPS**
+```bash
+# Run the installation script with HTTPS URL
+sudo bash install.sh https://github.com/yourusername/fnac.git
+```
+
+**Option 3: Interactive Mode**
+```bash
+# The script will prompt for the repository URL
 sudo bash install.sh
+```
+
+**Option 4: From Local Directory**
+```bash
+# If you already have the code locally
+sudo bash install.sh /path/to/fnac
 ```
 
 ### What the installer does:
 1. Updates system packages
 2. Installs Python 3, pip, git, and FreeRADIUS
 3. Creates a dedicated `fnac` user
-4. Clones the FNAC repository to `/opt/fnac`
+4. Clones the FNAC repository to `/opt/fnac` (or uses local copy)
 5. Sets up Python virtual environment
 6. Installs Python dependencies
 7. Creates a systemd service for automatic startup
@@ -40,6 +53,36 @@ sudo bash install.sh
 After installation, open your browser and navigate to:
 ```
 http://localhost:5000
+```
+
+## Authentication Methods
+
+### SSH (Recommended)
+Requires SSH keys configured with GitHub:
+```bash
+# Generate SSH key if you don't have one
+ssh-keygen -t ed25519 -C "your_email@example.com"
+
+# Add to GitHub: https://github.com/settings/keys
+
+# Test connection
+ssh -T git@github.com
+```
+
+### HTTPS
+Works with GitHub personal access tokens:
+```bash
+# Create a token at: https://github.com/settings/tokens
+# Use token as password when prompted
+
+# Or use git credential helper
+git config --global credential.helper store
+```
+
+### Local Installation
+If you already have the code:
+```bash
+sudo bash install.sh /path/to/fnac
 ```
 
 ## Service Management
