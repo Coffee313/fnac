@@ -5,7 +5,8 @@
 
 set -e
 
-REPO_URL="https://github.com/yourusername/fnac.git"
+# Default values
+REPO_URL="${1:-}"
 INSTALL_DIR="/opt/fnac"
 SERVICE_NAME="fnac"
 FNAC_USER="fnac"
@@ -20,6 +21,26 @@ if [[ $EUID -ne 0 ]]; then
    echo "This script must be run as root"
    exit 1
 fi
+
+# Get repository URL if not provided
+if [ -z "$REPO_URL" ]; then
+    echo ""
+    echo "Enter the FNAC repository URL:"
+    echo "Examples:"
+    echo "  - SSH: git@github.com:yourusername/fnac.git"
+    echo "  - HTTPS: https://github.com/yourusername/fnac.git"
+    echo "  - Local: /path/to/fnac"
+    echo ""
+    read -p "Repository URL: " REPO_URL
+    
+    if [ -z "$REPO_URL" ]; then
+        echo "Error: Repository URL is required"
+        exit 1
+    fi
+fi
+
+echo "Using repository: $REPO_URL"
+echo ""
 
 echo "[1/7] Updating system packages..."
 apt-get update
