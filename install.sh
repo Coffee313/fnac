@@ -288,6 +288,12 @@ MABUSEREOF
 # NOW set permissions after files are created
 chmod -R 777 /etc/freeradius/3.0 2>/dev/null || true
 
+# Pre-create clients.conf and mab_users with proper permissions so FNAC can write to them
+touch /etc/freeradius/3.0/clients.conf
+chmod 777 /etc/freeradius/3.0/clients.conf
+touch /etc/freeradius/3.0/mab_users
+chmod 777 /etc/freeradius/3.0/mab_users
+
 # Create systemd override to force FreeRADIUS to use our config
 mkdir -p /etc/systemd/system/freeradius.service.d
 cat > /etc/systemd/system/freeradius.service.d/override.conf << 'OVERRIDEEOF'
