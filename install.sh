@@ -47,16 +47,11 @@ chmod -R 755 /etc/freeradius /var/lib/freeradius /var/run/freeradius 2>/dev/null
 
 # Install FreeRADIUS - directories already exist so post-install won't fail
 echo "Installing FreeRADIUS..."
-DEBIAN_FRONTEND=noninteractive apt-get install -y freeradius freeradius-utils 2>&1 || {
-    echo "FreeRADIUS installation had issues, attempting recovery..."
-    # If install fails, ensure directories are correct and try again
-    mkdir -p /etc/freeradius/3.0/mods-config/files
-    mkdir -p /var/lib/freeradius
-    mkdir -p /var/run/freeradius
-    chown -R freerad:freerad /etc/freeradius /var/lib/freeradius /var/run/freeradius 2>/dev/null || true
-    chmod -R 755 /etc/freeradius /var/lib/freeradius /var/run/freeradius 2>/dev/null || true
-    dpkg --configure -a
-}
+DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends freeradius freeradius-utils 2>&1 || true
+
+# Stop FreeRADIUS if it started (it will fail due to incomplete config)
+systemctl stop freeradius 2>/dev/null || true
+systemctl disable freeradius 2>/dev/null || true
 
 # Final verification and fix
 mkdir -p /etc/freeradius/3.0/mods-config/files
@@ -122,6 +117,11 @@ systemctl enable "$SERVICE_NAME"
 
 echo "[7/7] Starting FNAC service..."
 systemctl start "$SERVICE_NAME"
+
+# Enable and start FreeRADIUS after FNAC is running
+echo "Enabling FreeRADIUS service..."
+systemctl enable freeradius
+systemctl start freeradius
 
 echo ""
 echo "=========================================="
