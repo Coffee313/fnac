@@ -64,6 +64,9 @@ certdir = /etc/freeradius/3.0/certs
 cadir = /etc/freeradius/3.0/certs
 run_dir = /var/run/freeradius
 
+# Set umask so log files are readable by all users
+umask = 0022
+
 max_request_time = 30
 cleanup_delay = 5
 max_requests = 16384
@@ -97,12 +100,17 @@ chmod 640 /etc/freeradius/3.0/radiusd.conf
 # Create log file that FreeRADIUS expects
 touch /var/log/freeradius/radius.log
 chown freerad:freerad /var/log/freeradius/radius.log
-chmod 640 /var/log/freeradius/radius.log
+# Make log file readable by all users so FNAC can parse it
+chmod 644 /var/log/freeradius/radius.log
 
 # Also create the /usr/var/log directory that package config expects (as fallback)
 mkdir -p /usr/var/log
 touch /usr/var/log/radius.log
 chmod 666 /usr/var/log/radius.log
+
+# Make log directory readable by all users so FNAC can access log files
+chmod 755 /var/log/freeradius
+chmod 755 /var/log/freeradius/radacct
 
 # Mask FreeRADIUS service to prevent it from starting during installation
 echo "Masking FreeRADIUS service during installation..."
@@ -223,6 +231,9 @@ modconfdir = /etc/freeradius/3.0/mods-config
 certdir = /etc/freeradius/3.0/certs
 cadir = /etc/freeradius/3.0/certs
 run_dir = /var/run/freeradius
+
+# Set umask so log files are readable by all users
+umask = 0022
 
 max_request_time = 30
 cleanup_delay = 5
