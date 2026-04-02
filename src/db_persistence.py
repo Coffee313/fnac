@@ -35,16 +35,19 @@ class DevicePersistence:
         devices = []
         for row in rows:
             try:
+                # Convert sqlite3.Row to dict for easier access
+                row_dict = dict(row)
+                
                 # Try to get name, fall back to id for old schema
-                name = row['name'] if 'name' in row.keys() else row.get('id')
+                name = row_dict.get('name') or row_dict.get('id')
                 
                 devices.append(Device(
                     name=name,
-                    ip_address=row['ip_address'],
-                    shared_secret=row['shared_secret'],
-                    device_group_name=row['device_group_name'],
-                    created_at=datetime.fromisoformat(row['created_at']),
-                    updated_at=datetime.fromisoformat(row['updated_at']),
+                    ip_address=row_dict['ip_address'],
+                    shared_secret=row_dict['shared_secret'],
+                    device_group_name=row_dict['device_group_name'],
+                    created_at=datetime.fromisoformat(row_dict['created_at']),
+                    updated_at=datetime.fromisoformat(row_dict['updated_at']),
                 ))
             except (KeyError, TypeError) as e:
                 logger.warning(f"Error loading device row: {e}, skipping row")
@@ -142,14 +145,17 @@ class ClientPersistence:
         clients = []
         for row in rows:
             try:
+                # Convert sqlite3.Row to dict for easier access
+                row_dict = dict(row)
+                
                 # Try to get mac_address, fall back to id for old schema
-                mac_address = row['mac_address'] if 'mac_address' in row.keys() else row.get('id')
+                mac_address = row_dict.get('mac_address') or row_dict.get('id')
                 
                 clients.append(Client(
                     mac_address=mac_address,
-                    client_group_name=row['client_group_name'],
-                    created_at=datetime.fromisoformat(row['created_at']),
-                    updated_at=datetime.fromisoformat(row['updated_at']),
+                    client_group_name=row_dict['client_group_name'],
+                    created_at=datetime.fromisoformat(row_dict['created_at']),
+                    updated_at=datetime.fromisoformat(row_dict['updated_at']),
                 ))
             except (KeyError, TypeError) as e:
                 logger.warning(f"Error loading client row: {e}, skipping row")
@@ -247,16 +253,19 @@ class PolicyPersistence:
         policies = []
         for row in rows:
             try:
+                # Convert sqlite3.Row to dict for easier access
+                row_dict = dict(row)
+                
                 # Try to get client_group_name, fall back to client_group_id for old schema
-                client_group_name = row['client_group_name'] if 'client_group_name' in row.keys() else row.get('client_group_id')
+                client_group_name = row_dict.get('client_group_name') or row_dict.get('client_group_id')
                 
                 policies.append(MABPolicy(
-                    name=row['name'],
+                    name=row_dict['name'],
                     client_group_name=client_group_name,
-                    decision=PolicyDecision(row['decision']),
-                    vlan_id=row['vlan_id'],
-                    created_at=datetime.fromisoformat(row['created_at']),
-                    updated_at=datetime.fromisoformat(row['updated_at']),
+                    decision=PolicyDecision(row_dict['decision']),
+                    vlan_id=row_dict['vlan_id'],
+                    created_at=datetime.fromisoformat(row_dict['created_at']),
+                    updated_at=datetime.fromisoformat(row_dict['updated_at']),
                 ))
             except (KeyError, TypeError) as e:
                 logger.warning(f"Error loading policy row: {e}, skipping row")
@@ -314,19 +323,22 @@ class LogPersistence:
         logs = []
         for row in rows:
             try:
+                # Convert sqlite3.Row to dict for easier access
+                row_dict = dict(row)
+                
                 # Try to get policy_name, it may not exist in old schema
-                policy_name = row.get('policy_name') if 'policy_name' in row.keys() else None
+                policy_name = row_dict.get('policy_name') if 'policy_name' in row_dict else None
                 
                 logs.append(AuthenticationLog(
-                    id=row['id'],
-                    timestamp=datetime.fromisoformat(row['timestamp']),
-                    client_mac=row['client_mac'],
-                    device_id=row['device_id'],
-                    outcome=AuthenticationOutcome(row['outcome']),
-                    vlan_id=row['vlan_id'],
-                    policy_decision=row['policy_decision'],
+                    id=row_dict['id'],
+                    timestamp=datetime.fromisoformat(row_dict['timestamp']),
+                    client_mac=row_dict['client_mac'],
+                    device_id=row_dict['device_id'],
+                    outcome=AuthenticationOutcome(row_dict['outcome']),
+                    vlan_id=row_dict['vlan_id'],
+                    policy_decision=row_dict['policy_decision'],
                     policy_name=policy_name,
-                    created_at=datetime.fromisoformat(row['created_at']),
+                    created_at=datetime.fromisoformat(row_dict['created_at']),
                 ))
             except (KeyError, TypeError) as e:
                 logger.warning(f"Error loading log row: {e}, skipping row")
