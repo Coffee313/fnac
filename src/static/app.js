@@ -376,6 +376,12 @@ async function loadLogs() {
         const logs = await res.json();
         const container = document.getElementById('logsContainer');
         
+        // Update log counter
+        const logCounter = document.getElementById('logCounter');
+        if (logCounter) {
+            logCounter.textContent = logs.length;
+        }
+        
         if (logs.length === 0) {
             container.innerHTML = '<div class="no-logs">No authentication logs yet</div>';
             return;
@@ -390,11 +396,11 @@ async function loadLogs() {
             const seconds = String(timestamp.getUTCSeconds()).padStart(2, '0');
             const timeStr = `${hours}:${minutes}:${seconds}`;
             
-            // Format date as MM/DD/YYYY
-            const month = String(timestamp.getUTCMonth() + 1).padStart(2, '0');
+            // Format date as DD.MM.YYYY
             const day = String(timestamp.getUTCDate()).padStart(2, '0');
+            const month = String(timestamp.getUTCMonth() + 1).padStart(2, '0');
             const year = timestamp.getUTCFullYear();
-            const dateStr = `${month}/${day}/${year}`;
+            const dateStr = `${day}.${month}.${year}`;
             
             const isSuccess = l.outcome === 'success';
             const icon = isSuccess ? '✓' : '✗';

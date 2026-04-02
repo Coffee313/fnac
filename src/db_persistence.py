@@ -379,22 +379,6 @@ class LogPersistence:
         # Fall back to synchronous write
         _save_log_sync(log)
 
-
-def _save_log_sync(log: AuthenticationLog) -> None:
-    """Synchronous log write (fallback)."""
-    db = Database()
-    conn = db.get_connection()
-    cursor = conn.cursor()
-    
-    cursor.execute("""
-        INSERT INTO auth_logs (id, timestamp, client_mac, device_id, outcome, vlan_id, policy_decision, policy_name, created_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-    """, (log.id, log.timestamp.isoformat(), log.client_mac, log.device_id,
-          log.outcome.value, log.vlan_id, log.policy_decision, log.policy_name, log.created_at.isoformat()))
-    
-    conn.commit()
-    conn.close()
-
     @staticmethod
     def save_logs(logs: List[AuthenticationLog]) -> None:
         """Save all logs to database."""
@@ -415,3 +399,19 @@ def _save_log_sync(log: AuthenticationLog) -> None:
         
         conn.commit()
         conn.close()
+
+
+def _save_log_sync(log: AuthenticationLog) -> None:
+    """Synchronous log write (fallback)."""
+    db = Database()
+    conn = db.get_connection()
+    cursor = conn.cursor()
+    
+    cursor.execute("""
+        INSERT INTO auth_logs (id, timestamp, client_mac, device_id, outcome, vlan_id, policy_decision, policy_name, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    """, (log.id, log.timestamp.isoformat(), log.client_mac, log.device_id,
+          log.outcome.value, log.vlan_id, log.policy_decision, log.policy_name, log.created_at.isoformat()))
+    
+    conn.commit()
+    conn.close()

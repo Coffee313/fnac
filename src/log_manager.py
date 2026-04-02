@@ -2,6 +2,7 @@
 Log_Manager component for recording and querying authentication logs.
 
 Implements create_log_entry, list_logs, filter_logs, get_log_entry.
+Includes automatic log rotation when reaching 5000 entries.
 """
 
 import uuid
@@ -11,6 +12,9 @@ from typing import List, Optional
 from src.models import AuthenticationLog, AuthenticationOutcome
 from src.persistence import LogPersistence
 
+# Maximum number of logs to keep in database
+MAX_LOGS = 5000
+
 
 class Log_Manager:
     """
@@ -19,6 +23,7 @@ class Log_Manager:
     - Logs are stored in reverse chronological order (newest first) when listed.
     - filter_logs supports optional date range, MAC address, and outcome filters.
     - All changes are persisted to logs.json.
+    - Automatically rotates logs when reaching MAX_LOGS (5000) entries.
     """
 
     def __init__(self) -> None:
@@ -33,6 +38,17 @@ class Log_Manager:
 
     def _save_data(self) -> None:
         LogPersistence.save(self._logs)
+
+    def _rotate_logs(self) -> None:
+        """
+        Rotate logs when reaching MAX_LOGS.
+        
+        Keeps only the most recent MAX_LOGS entries.
+        """
+        if len(self._logs) > MAX_LOGS:
+            # Sort by timestamp (newest first) and keep only the most recent MAX_LOGS
+            self._logs = sorted(self._logs, key=lambda l: l.timestamp, reverse=True)[:MAX_LOGS]
+            self._save_data()
 
     def create_log_entry(
         self,
@@ -70,6 +86,10 @@ class Log_Manager:
             created_at=now,
         )
         self._logs.append(log)
+        
+        # Check if rotation is needed
+        self._rotate_logs()
+        
         # Note: Database persistence is handled by the caller (e.g., log parser)
         # This allows the caller to override timestamps before saving
         return log
