@@ -164,7 +164,12 @@ listen {
     proto = udp
 }
 
-$INCLUDE mods-enabled/
+modules {
+    always ok {
+        rcode = ok
+    }
+}
+
 $INCLUDE sites-enabled/
 RADIUSEOF
     mv /tmp/radiusd.conf /etc/freeradius/3.0/radiusd.conf
@@ -193,6 +198,12 @@ server default {
         ok
     }
     accounting {
+        ok
+    }
+    session {
+        ok
+    }
+    post-auth {
         ok
     }
 }
