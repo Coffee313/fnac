@@ -187,8 +187,10 @@ fi
 mkdir -p /etc/freeradius/3.0/mods-enabled
 mkdir -p /etc/freeradius/3.0/sites-enabled
 chown -R freerad:freerad /etc/freeradius/3.0/mods-enabled /etc/freeradius/3.0/sites-enabled
+chmod -R 755 /etc/freeradius/3.0/mods-enabled /etc/freeradius/3.0/sites-enabled
 
 # Create a minimal default site config
+mkdir -p /etc/freeradius/3.0/sites-enabled
 if [ ! -f /etc/freeradius/3.0/sites-enabled/default ]; then
     cat > /etc/freeradius/3.0/sites-enabled/default << 'SITEEOF'
 server default {
