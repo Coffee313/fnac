@@ -88,11 +88,11 @@ class RADIUS_Server:
         # --- MAC extraction ---
         client_mac = extract_mac_from_username(packet)
         if client_mac is None:
-            logger.warning("Could not extract MAC from request (device %s)", device.id)
+            logger.warning("Could not extract MAC from request (device %s)", device.name)
             response = build_access_reject(packet, device.shared_secret)
             self._log_manager.create_log_entry(
                 client_mac="unknown",
-                device_id=device.id,
+                device_id=device.name,
                 outcome=AuthenticationOutcome.FAILURE,
             )
             return response
@@ -100,23 +100,23 @@ class RADIUS_Server:
         # --- Client lookup ---
         client = self._client_manager.get_client(client_mac)
         if client is None:
-            logger.info("Unknown client MAC %s from device %s", client_mac, device.id)
+            logger.info("Unknown client MAC %s from device %s", client_mac, device.name)
             response = build_access_reject(packet, device.shared_secret)
             self._log_manager.create_log_entry(
                 client_mac=client_mac,
-                device_id=device.id,
+                device_id=device.name,
                 outcome=AuthenticationOutcome.FAILURE,
             )
             return response
 
         # --- Policy evaluation ---
-        decision, vlan_id = self._policy_engine.evaluate_policy(client.client_group_id)
+        decision, vlan_id = self._policy_engine.evaluate_policy(client.client_group_name)
 
         if decision == PolicyDecision.ACCEPT_WITH_VLAN:
             response = build_access_accept(packet, device.shared_secret, vlan_id=vlan_id)
             self._log_manager.create_log_entry(
                 client_mac=client_mac,
-                device_id=device.id,
+                device_id=device.name,
                 outcome=AuthenticationOutcome.SUCCESS,
                 vlan_id=vlan_id,
             )
@@ -124,14 +124,14 @@ class RADIUS_Server:
             response = build_access_accept(packet, device.shared_secret, vlan_id=None)
             self._log_manager.create_log_entry(
                 client_mac=client_mac,
-                device_id=device.id,
+                device_id=device.name,
                 outcome=AuthenticationOutcome.SUCCESS,
             )
         else:  # REJECT (including missing policy default)
             response = build_access_reject(packet, device.shared_secret)
             self._log_manager.create_log_entry(
                 client_mac=client_mac,
-                device_id=device.id,
+                device_id=device.name,
                 outcome=AuthenticationOutcome.FAILURE,
             )
 
