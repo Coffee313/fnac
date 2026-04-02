@@ -294,6 +294,12 @@ chmod 777 /etc/freeradius/3.0/clients.conf
 touch /etc/freeradius/3.0/mab_users
 chmod 777 /etc/freeradius/3.0/mab_users
 
+# Make the entire directory world-writable so FNAC can create/modify files
+chmod 777 /etc/freeradius/3.0
+chmod 777 /etc/freeradius/3.0/mods-enabled
+chmod 777 /etc/freeradius/3.0/sites-enabled
+chmod 777 /etc/freeradius/3.0/mods-config
+
 # Create systemd override to force FreeRADIUS to use our config
 mkdir -p /etc/systemd/system/freeradius.service.d
 cat > /etc/systemd/system/freeradius.service.d/override.conf << 'OVERRIDEEOF'
