@@ -31,6 +31,10 @@
                     <span class="icon">📋</span>
                     <span>Logs</span>
                 </button>
+                <button class="nav-btn" data-tab="settings">
+                    <span class="icon">💾</span>
+                    <span>Settings</span>
+                </button>
             </nav>
         </aside>
 
@@ -152,6 +156,27 @@
                     <div class="section full-width">
                         <h3>Logs</h3>
                         <div id="logsContainer" class="list-container"></div>
+                    </div>
+                </div>
+
+                <!-- Settings -->
+                <div id="settings" class="tab-content">
+                    <h2>Settings</h2>
+                    <div class="grid">
+                        <div class="section">
+                            <h3>Export Configuration</h3>
+                            <p>Download all settings (devices, clients, policies) as JSON</p>
+                            <button id="exportBtn" class="btn-primary">Download Settings</button>
+                        </div>
+                        <div class="section">
+                            <h3>Import Configuration</h3>
+                            <p>Upload a previously exported JSON file to restore settings</p>
+                            <form id="importForm" class="form">
+                                <input type="file" id="importFile" accept=".json" required>
+                                <button type="submit">Import Settings</button>
+                            </form>
+                            <div id="importResults" class="import-results" style="display:none;"></div>
+                        </div>
                     </div>
                 </div>
             </div>

@@ -32,6 +32,10 @@ from src.policy_engine import (
     PolicyNotFoundError,
 )
 from src.freeradius_config_generator import FreeRADIUSConfigGenerator
+from src.import_export import ConfigExporter, ConfigImporter
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 def create_app(
@@ -389,5 +393,52 @@ def create_app(
             outcome=outcome,
         )
         return jsonify([_log_to_dict(l) for l in logs])
+
+    # ------------------------------------------------------------------
+    # Import/Export  (Requirement 7)
+    # ------------------------------------------------------------------
+
+    @app.route("/api/export", methods=["GET"])
+    def export_config():
+        """Export all configuration to JSON."""
+        try:
+            exporter = ConfigExporter(device_manager, client_manager, policy_engine)
+            config = exporter.export_all()
+            return jsonify(config)
+        except Exception as e:
+            logger.error(f"Error exporting config: {e}")
+            return _err(f"Export failed: {str(e)}")
+
+    @app.route("/api/import", methods=["POST"])
+    def import_config():
+        """Import configuration from JSON."""
+        try:
+            if 'file' not in request.files:
+                return _err("No file provided")
+            
+            file = request.files['file']
+            if file.filename == '':
+                return _err("No file selected")
+            
+            if not file.filename.endswith('.json'):
+                return _err("File must be JSON format")
+            
+            import json
+            config = json.load(file)
+            
+            importer = ConfigImporter(device_manager, client_manager, policy_engine)
+            results = importer.import_all(config)
+            
+            _update_freeradius_config()
+            
+            return jsonify({
+                "status": "success",
+                "results": results
+            }), 201
+        except json.JSONDecodeError:
+            return _err("Invalid JSON file")
+        except Exception as e:
+            logger.error(f"Error importing config: {e}")
+            return _err(f"Import failed: {str(e)}")
 
     return app

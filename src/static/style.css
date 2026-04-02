@@ -492,3 +492,58 @@ button:active {
         font-size: 1.5em;
     }
 }
+
+
+/* Import/Export Styling */
+.btn-primary {
+    background: #667eea;
+    padding: 12px 24px;
+    font-size: 1em;
+    width: 100%;
+}
+
+.btn-primary:hover {
+    background: #764ba2;
+}
+
+.import-results {
+    margin-top: 15px;
+    padding: 15px;
+    background: #f0f8ff;
+    border-left: 4px solid #3498db;
+    border-radius: 5px;
+}
+
+.import-results h4 {
+    color: #333;
+    margin-bottom: 10px;
+}
+
+.import-result-item {
+    padding: 8px 0;
+    color: #555;
+    border-bottom: 1px solid #ddd;
+}
+
+.import-result-item:last-child {
+    border-bottom: none;
+}
+
+.import-result-item small {
+    display: block;
+    margin-top: 5px;
+    color: #e74c3c;
+    font-size: 0.85em;
+}
+
+#importFile {
+    padding: 10px;
+    border: 2px dashed #667eea;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+#importFile:hover {
+    border-color: #764ba2;
+    background: #f9f9f9;
+}

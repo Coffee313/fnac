@@ -442,3 +442,91 @@ document.querySelectorAll('.nav-btn').forEach(btn => {
 
 // Initial load
 loadTabData('devices');
+
+// ===== IMPORT/EXPORT =====
+
+// Export configuration
+document.getElementById('exportBtn').addEventListener('click', async () => {
+    try {
+        const res = await fetch(`${API_URL}/export`);
+        if (!res.ok) {
+            const err = await res.json();
+            showMessage(`Export failed: ${err.error}`, 'error');
+            return;
+        }
+        
+        const config = await res.json();
+        const dataStr = JSON.stringify(config, null, 2);
+        const dataBlob = new Blob([dataStr], { type: 'application/json' });
+        const url = URL.createObjectURL(dataBlob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `fnac-config-${new Date().toISOString().split('T')[0]}.json`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+        showMessage('Configuration exported successfully');
+    } catch (e) {
+        showMessage('Error exporting configuration', 'error');
+    }
+});
+
+// Import configuration
+document.getElementById('importForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const fileInput = document.getElementById('importFile');
+    const file = fileInput.files[0];
+    
+    if (!file) {
+        showMessage('Please select a file', 'error');
+        return;
+    }
+    
+    try {
+        const formData = new FormData();
+        formData.append('file', file);
+        
+        const res = await fetch(`${API_URL}/import`, {
+            method: 'POST',
+            body: formData
+        });
+        
+        if (!res.ok) {
+            const err = await res.json();
+            showMessage(`Import failed: ${err.error}`, 'error');
+            return;
+        }
+        
+        const result = await res.json();
+        
+        // Display import results
+        const resultsDiv = document.getElementById('importResults');
+        let resultsHtml = '<h4>Import Results:</h4>';
+        
+        for (const [category, stats] of Object.entries(result.results)) {
+            resultsHtml += `
+                <div class="import-result-item">
+                    <strong>${category}:</strong> 
+                    ${stats.success} imported
+                    ${stats.failed > 0 ? `, ${stats.failed} failed` : ''}
+                    ${stats.errors.length > 0 ? `<br><small>${stats.errors.join('<br>')}</small>` : ''}
+                </div>
+            `;
+        }
+        
+        resultsDiv.innerHTML = resultsHtml;
+        resultsDiv.style.display = 'block';
+        
+        fileInput.value = '';
+        showMessage('Configuration imported successfully');
+        
+        // Reload all data
+        setTimeout(() => {
+            loadTabData('devices');
+        }, 500);
+    } catch (e) {
+        showMessage('Error importing configuration', 'error');
+    }
+});
