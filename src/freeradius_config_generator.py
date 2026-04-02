@@ -201,15 +201,23 @@ class FreeRADIUSConfigGenerator:
 
             logger.info(f"Updated {FREERADIUS_CLIENTS_CONF}")
             
-            # Unmask FreeRADIUS on first config write
+            # Unmask and enable FreeRADIUS on first config write
             try:
                 subprocess.run(
                     ["sudo", "systemctl", "unmask", "freeradius"],
                     capture_output=True,
                     timeout=5,
                 )
+                logger.info("FreeRADIUS unmasked")
+                
+                subprocess.run(
+                    ["sudo", "systemctl", "enable", "freeradius"],
+                    capture_output=True,
+                    timeout=5,
+                )
+                logger.info("FreeRADIUS enabled")
             except Exception as e:
-                logger.warning(f"Could not unmask FreeRADIUS: {e}")
+                logger.warning(f"Could not unmask/enable FreeRADIUS: {e}")
             
             return True
 
@@ -247,6 +255,25 @@ class FreeRADIUSConfigGenerator:
                 f.write(content)
 
             logger.info(f"Updated {FREERADIUS_MAB_USERS}")
+            
+            # Unmask and enable FreeRADIUS if not already done
+            try:
+                subprocess.run(
+                    ["sudo", "systemctl", "unmask", "freeradius"],
+                    capture_output=True,
+                    timeout=5,
+                )
+                logger.info("FreeRADIUS unmasked")
+                
+                subprocess.run(
+                    ["sudo", "systemctl", "enable", "freeradius"],
+                    capture_output=True,
+                    timeout=5,
+                )
+                logger.info("FreeRADIUS enabled")
+            except Exception as e:
+                logger.warning(f"Could not unmask/enable FreeRADIUS: {e}")
+            
             return True
 
         except PermissionError:
