@@ -36,20 +36,38 @@ apt-get autoremove -y 2>/dev/null || true
 # Install dependencies
 apt-get install -y python3 python3-pip python3-venv git
 
-# Create freerad user and directories BEFORE installing package
+# Create freerad user BEFORE installing package
 echo "Pre-creating FreeRADIUS user and directories..."
 id -u freerad >/dev/null 2>&1 || useradd -r -s /bin/false freerad 2>/dev/null || true
-mkdir -p /etc/freeradius/3.0/mods-config/files
+
+# Create all required directories
 mkdir -p /etc/freeradius/3.0/mods-enabled
+mkdir -p /etc/freeradius/3.0/mods-available
 mkdir -p /etc/freeradius/3.0/sites-enabled
+mkdir -p /etc/freeradius/3.0/sites-available
+mkdir -p /etc/freeradius/3.0/mods-config/attr_filter
 mkdir -p /var/lib/freeradius
 mkdir -p /var/run/freeradius
 mkdir -p /var/log/freeradius/radacct
-chown -R freerad:freerad /etc/freeradius /var/lib/freeradius /var/run/freeradius /var/log/freeradius 2>/dev/null || true
-chmod -R 755 /etc/freeradius /var/lib/freeradius /var/run/freeradius /var/log/freeradius 2>/dev/null || true
 
-# Create minimal radiusd.conf BEFORE installing package
-echo "Creating minimal FreeRADIUS configuration..."
+# Mask FreeRADIUS service to prevent it from starting during installation
+echo "Masking FreeRADIUS service during installation..."
+systemctl mask freeradius 2>/dev/null || true
+
+# Install FreeRADIUS
+echo "Installing FreeRADIUS..."
+DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends freeradius freeradius-utils 2>&1 || true
+
+# Unmask FreeRADIUS service
+echo "Unmasking FreeRADIUS service..."
+systemctl unmask freeradius 2>/dev/null || true
+
+# Stop FreeRADIUS if it started
+systemctl stop freeradius 2>/dev/null || true
+systemctl disable freeradius 2>/dev/null || true
+
+# Create working radiusd.conf
+echo "Creating FreeRADIUS configuration..."
 cat > /etc/freeradius/3.0/radiusd.conf << 'RADIUSEOF'
 prefix = /usr
 exec_prefix = /usr
@@ -64,7 +82,6 @@ certdir = /etc/freeradius/3.0/certs
 cadir = /etc/freeradius/3.0/certs
 run_dir = /var/run/freeradius
 
-# Set umask so log files are readable by all users
 umask = 0022
 
 max_request_time = 30
@@ -85,20 +102,56 @@ listen {
     proto = udp
 }
 
-# Define modules section - include all modules from mods-enabled
 modules {
     $INCLUDE mods-enabled/
 }
 
-# Include all sites from sites-enabled
 $INCLUDE sites-enabled/
 RADIUSEOF
-chown freerad:freerad /etc/freeradius/3.0/radiusd.conf
-chmod 640 /etc/freeradius/3.0/radiusd.conf
 
-# Create a simple default site configuration
+# Create minimal working modules
+echo "Creating FreeRADIUS modules..."
+
+# PAP module
+cat > /etc/freeradius/3.0/mods-enabled/pap << 'PAPEOF'
+pap {
+    auto_header = yes
+}
+PAPEOF
+
+# Files module pointing to mab_users
+cat > /etc/freeradius/3.0/mods-enabled/files << 'FILESEOF'
+files {
+    usersfile = ${confdir}/mab_users
+}
+FILESEOF
+
+# Attr_filter module
+cat > /etc/freeradius/3.0/mods-enabled/attr_filter << 'ATTREOF'
+attr_filter attr_filter.access_reject {
+    filename = ${modconfdir}/attr_filter/access-reject
+}
+ATTREOF
+
+# Detail module
+cat > /etc/freeradius/3.0/mods-enabled/detail << 'DETAILEOF'
+detail {
+    filename = ${radacctdir}/detail
+    header = "%t"
+    permissions = 0600
+    locking = no
+    escape_user_name = no
+}
+DETAILEOF
+
+# Create access-reject file
+mkdir -p /etc/freeradius/3.0/mods-config/attr_filter
+cat > /etc/freeradius/3.0/mods-config/attr_filter/access-reject << 'REJECTEOF'
+Reply-Message
+REJECTEOF
+
+# Create default site
 echo "Creating default site configuration..."
-mkdir -p /etc/freeradius/3.0/sites-available
 cat > /etc/freeradius/3.0/sites-available/default << 'SITEEOF'
 server default {
     authorize {
@@ -119,107 +172,35 @@ server default {
     }
 }
 SITEEOF
-chown freerad:freerad /etc/freeradius/3.0/sites-available/default
-chmod 640 /etc/freeradius/3.0/sites-available/default
 
-# Create symlink to enable the default site
+# Enable default site
 ln -sf ../sites-available/default /etc/freeradius/3.0/sites-enabled/default 2>/dev/null || true
 
-# Create log file that FreeRADIUS expects
-touch /var/log/freeradius/radius.log
-chown freerad:freerad /var/log/freeradius/radius.log
-# Make log file readable by all users so FNAC can parse it
-chmod 644 /var/log/freeradius/radius.log
+# Create empty mab_users file
+touch /etc/freeradius/3.0/mab_users
 
-# Also create the /usr/var/log directory that package config expects (as fallback)
-mkdir -p /usr/var/log
-touch /usr/var/log/radius.log
-chmod 666 /usr/var/log/radius.log
+# Set permissions
+echo "Setting permissions..."
+chown -R freerad:freerad /etc/freeradius/3.0
+chown -R freerad:freerad /var/lib/freeradius
+chown -R freerad:freerad /var/run/freeradius
+chown -R freerad:freerad /var/log/freeradius
 
-# Make log directory readable by all users so FNAC can access log files
-chmod 755 /var/log/freeradius
-chmod 755 /var/log/freeradius/radacct
+chmod 750 /etc/freeradius/3.0
+chmod 750 /etc/freeradius/3.0/mods-enabled
+chmod 750 /etc/freeradius/3.0/mods-available
+chmod 750 /etc/freeradius/3.0/sites-enabled
+chmod 750 /etc/freeradius/3.0/sites-available
+chmod 750 /etc/freeradius/3.0/mods-config
+chmod 750 /etc/freeradius/3.0/mods-config/attr_filter
 
-# Mask FreeRADIUS service to prevent it from starting during installation
-echo "Masking FreeRADIUS service during installation..."
-systemctl mask freeradius 2>/dev/null || true
+chmod 640 /etc/freeradius/3.0/radiusd.conf
+chmod 640 /etc/freeradius/3.0/mab_users
+chmod 640 /etc/freeradius/3.0/mods-enabled/*
+chmod 640 /etc/freeradius/3.0/sites-enabled/*
+chmod 640 /etc/freeradius/3.0/mods-config/attr_filter/*
 
-# Install FreeRADIUS - directories and config already exist so post-install won't fail
-echo "Installing FreeRADIUS..."
-DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends freeradius freeradius-utils 2>&1 || true
-
-# Unmask FreeRADIUS service
-echo "Unmasking FreeRADIUS service..."
-systemctl unmask freeradius 2>/dev/null || true
-
-# Stop FreeRADIUS if it started
-systemctl stop freeradius 2>/dev/null || true
-systemctl disable freeradius 2>/dev/null || true
-
-# NOW setup modules from package installation (after package is installed)
-echo "Setting up FreeRADIUS modules..."
-
-# Create mods-enabled directory
-mkdir -p /etc/freeradius/3.0/mods-enabled
-
-# Create pap module
-cat > /etc/freeradius/3.0/mods-enabled/pap << 'PAPEOF'
-pap {
-    auto_header = yes
-}
-PAPEOF
-chown freerad:freerad /etc/freeradius/3.0/mods-enabled/pap
-chmod 640 /etc/freeradius/3.0/mods-enabled/pap
-
-# Create files module pointing to mab_users
-cat > /etc/freeradius/3.0/mods-enabled/files << 'FILESEOF'
-files {
-    usersfile = ${confdir}/mab_users
-}
-FILESEOF
-chown freerad:freerad /etc/freeradius/3.0/mods-enabled/files
-chmod 640 /etc/freeradius/3.0/mods-enabled/files
-
-# Create attr_filter module
-mkdir -p /etc/freeradius/3.0/mods-config/attr_filter
-cat > /etc/freeradius/3.0/mods-enabled/attr_filter << 'ATTREOF'
-attr_filter attr_filter.access_reject {
-    filename = ${modconfdir}/attr_filter/access-reject
-}
-ATTREOF
-chown freerad:freerad /etc/freeradius/3.0/mods-enabled/attr_filter
-chmod 640 /etc/freeradius/3.0/mods-enabled/attr_filter
-
-# Create access-reject file
-cat > /etc/freeradius/3.0/mods-config/attr_filter/access-reject << 'REJECTEOF'
-Reply-Message
-REJECTEOF
-chown freerad:freerad /etc/freeradius/3.0/mods-config/attr_filter/access-reject
-chmod 640 /etc/freeradius/3.0/mods-config/attr_filter/access-reject
-
-# Create detail module for accounting
-cat > /etc/freeradius/3.0/mods-enabled/detail << 'DETAILEOF'
-detail {
-    filename = ${radacctdir}/detail
-    header = "%t"
-    permissions = 0600
-    locking = no
-    escape_user_name = no
-}
-DETAILEOF
-chown freerad:freerad /etc/freeradius/3.0/mods-enabled/detail
-chmod 640 /etc/freeradius/3.0/mods-enabled/detail
-
-# Ensure sites-enabled has the default site
-echo "Setting up default site..."
-mkdir -p /etc/freeradius/3.0/sites-enabled
-cp /etc/freeradius/3.0/sites-available/default /etc/freeradius/3.0/sites-enabled/default 2>/dev/null || true
-chown freerad:freerad /etc/freeradius/3.0/sites-enabled/default
-chmod 640 /etc/freeradius/3.0/sites-enabled/default
-
-echo "FreeRADIUS modules configured successfully"
-
-# Create systemd override to force FreeRADIUS to use our config
+# Create systemd override
 mkdir -p /etc/systemd/system/freeradius.service.d
 cat > /etc/systemd/system/freeradius.service.d/override.conf << 'OVERRIDEEOF'
 [Service]
@@ -305,72 +286,10 @@ systemctl enable "$SERVICE_NAME"
 
 echo "[7/7] Starting services..."
 
-# Ensure FreeRADIUS is NOT masked (so FNAC can start it later)
+# Ensure FreeRADIUS is NOT masked
 systemctl unmask freeradius 2>/dev/null || true
 systemctl disable freeradius 2>/dev/null || true
 systemctl stop freeradius 2>/dev/null || true
-
-# CRITICAL FIX: Recreate directories and set proper permissions
-# FreeRADIUS refuses to start if config directory is world-writable (777)
-# Solution: Use group-based permissions with freerad as owner
-
-# Recreate all required directories
-mkdir -p /etc/freeradius/3.0/mods-config/files
-mkdir -p /etc/freeradius/3.0/mods-enabled
-mkdir -p /etc/freeradius/3.0/sites-enabled
-
-# Ensure freerad owns everything
-chown -R freerad:freerad /etc/freeradius/3.0
-chown -R freerad:freerad /var/lib/freeradius
-chown -R freerad:freerad /var/run/freeradius
-chown -R freerad:freerad /var/log/freeradius
-
-# Add fnac user to freerad group so it can write to config files
-usermod -a -G freerad fnac 2>/dev/null || true
-
-# Set directory permissions: 750 (rwxr-x---)
-chmod 750 /etc/freeradius/3.0
-chmod 750 /etc/freeradius/3.0/mods-enabled 2>/dev/null || true
-chmod 750 /etc/freeradius/3.0/mods-available 2>/dev/null || true
-chmod 750 /etc/freeradius/3.0/sites-enabled 2>/dev/null || true
-chmod 750 /etc/freeradius/3.0/sites-available 2>/dev/null || true
-chmod 750 /etc/freeradius/3.0/mods-config 2>/dev/null || true
-
-# Set file permissions: 640 (rw-r-----)
-# Owner (freerad) can read/write, Group (freerad) can read
-chmod 640 /etc/freeradius/3.0/clients.conf 2>/dev/null || true
-chmod 640 /etc/freeradius/3.0/mab_users 2>/dev/null || true
-chmod 640 /etc/freeradius/3.0/radiusd.conf 2>/dev/null || true
-chmod 640 /etc/freeradius/3.0/mods-enabled/* 2>/dev/null || true
-chmod 640 /etc/freeradius/3.0/mods-available/* 2>/dev/null || true
-chmod 640 /etc/freeradius/3.0/sites-enabled/* 2>/dev/null || true
-chmod 640 /etc/freeradius/3.0/sites-available/* 2>/dev/null || true
-chmod 660 /etc/freeradius/3.0/sites-enabled/default 2>/dev/null || true
-
-# Ensure files exist and are owned by freerad
-touch /etc/freeradius/3.0/clients.conf
-touch /etc/freeradius/3.0/mab_users
-chown freerad:freerad /etc/freeradius/3.0/clients.conf
-chown freerad:freerad /etc/freeradius/3.0/mab_users
-chmod 660 /etc/freeradius/3.0/clients.conf
-chmod 660 /etc/freeradius/3.0/mab_users
-
-# Add localhost as a client for testing
-cat >> /etc/freeradius/3.0/clients.conf << 'CLIENTEOF'
-
-# Localhost client for testing
-client 127.0.0.1 {
-    ipaddr = 127.0.0.1
-    secret = "testing123"
-    shortname = "localhost"
-    nastype = generic
-}
-CLIENTEOF
-chown freerad:freerad /etc/freeradius/3.0/clients.conf
-chmod 660 /etc/freeradius/3.0/clients.conf
-
-# Make parent directory accessible
-chmod 755 /etc/freeradius
 
 # Start FNAC only
 systemctl start "$SERVICE_NAME"
@@ -399,7 +318,7 @@ echo ""
 echo "Next steps:"
 echo "1. Open http://localhost:5000 in your browser"
 echo "2. Create device groups and devices"
-echo "3. Create client groups and clients"
+echo "3. Create client groups and clients with MAC addresses"
 echo "4. Create policies for authentication"
 echo "5. FreeRADIUS will start automatically when you create your first device"
 echo ""
