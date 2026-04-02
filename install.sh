@@ -25,18 +25,8 @@ echo "[1/7] Updating system packages..."
 apt-get update
 apt-get install -y python3 python3-pip python3-venv git
 
-# Try to install FreeRADIUS, but don't fail if it doesn't work
-echo "Installing FreeRADIUS..."
-if ! apt-get install -y freeradius freeradius-utils 2>/dev/null; then
-    echo "WARNING: FreeRADIUS installation failed. Attempting to fix..."
-    dpkg --configure -a 2>/dev/null || true
-    apt-get install -f -y 2>/dev/null || true
-    if ! apt-get install -y freeradius freeradius-utils 2>/dev/null; then
-        echo "WARNING: Could not install FreeRADIUS. FNAC will run without it."
-        echo "You can try installing FreeRADIUS manually later with:"
-        echo "  sudo apt-get install freeradius freeradius-utils"
-    fi
-fi
+# FreeRADIUS is optional - FNAC has a built-in RADIUS server
+echo "Skipping FreeRADIUS installation (FNAC has built-in RADIUS server)"
 
 echo "[2/7] Creating FNAC user and group..."
 if ! id "$FNAC_USER" &>/dev/null; then
