@@ -243,20 +243,21 @@ chmod 750 /etc/freeradius/3.0/mods-enabled
 chmod 750 /etc/freeradius/3.0/sites-enabled
 chmod 750 /etc/freeradius/3.0/mods-config
 
-# Set file permissions: 640 (rw-r-----)
-chmod 640 /etc/freeradius/3.0/clients.conf 2>/dev/null || true
-chmod 640 /etc/freeradius/3.0/mab_users 2>/dev/null || true
-chmod 640 /etc/freeradius/3.0/radiusd.conf 2>/dev/null || true
-chmod 640 /etc/freeradius/3.0/mods-enabled/files 2>/dev/null || true
-chmod 640 /etc/freeradius/3.0/sites-enabled/default 2>/dev/null || true
+# Set file permissions: 660 (rw-rw----)
+# Owner (freerad) can read/write, Group (freerad) can read/write
+chmod 660 /etc/freeradius/3.0/clients.conf 2>/dev/null || true
+chmod 660 /etc/freeradius/3.0/mab_users 2>/dev/null || true
+chmod 660 /etc/freeradius/3.0/radiusd.conf 2>/dev/null || true
+chmod 660 /etc/freeradius/3.0/mods-enabled/files 2>/dev/null || true
+chmod 660 /etc/freeradius/3.0/sites-enabled/default 2>/dev/null || true
 
 # Ensure files exist and are owned by freerad
 touch /etc/freeradius/3.0/clients.conf
 touch /etc/freeradius/3.0/mab_users
 chown freerad:freerad /etc/freeradius/3.0/clients.conf
 chown freerad:freerad /etc/freeradius/3.0/mab_users
-chmod 640 /etc/freeradius/3.0/clients.conf
-chmod 640 /etc/freeradius/3.0/mab_users
+chmod 660 /etc/freeradius/3.0/clients.conf
+chmod 660 /etc/freeradius/3.0/mab_users
 
 # Make parent directory accessible
 chmod 755 /etc/freeradius
