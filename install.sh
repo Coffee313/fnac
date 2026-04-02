@@ -155,48 +155,67 @@ systemctl stop freeradius 2>/dev/null || true
 systemctl disable freeradius 2>/dev/null || true
 
 # NOW setup modules from package installation (after package is installed)
-echo "Setting up FreeRADIUS modules from package..."
+echo "Setting up FreeRADIUS modules..."
 
-# Remove old mods-enabled to start fresh
-rm -rf /etc/freeradius/3.0/mods-enabled/*
+# Create mods-enabled directory
+mkdir -p /etc/freeradius/3.0/mods-enabled
 
-# Copy all modules from mods-available to mods-enabled
-if [ -d "/etc/freeradius/3.0/mods-available" ]; then
-    echo "Copying modules from mods-available..."
-    cp -r /etc/freeradius/3.0/mods-available/* /etc/freeradius/3.0/mods-enabled/ 2>/dev/null || true
-    
-    # List what we got
-    echo "Modules in mods-enabled:"
-    ls -la /etc/freeradius/3.0/mods-enabled/ | head -20
-fi
+# Create pap module
+cat > /etc/freeradius/3.0/mods-enabled/pap << 'PAPEOF'
+pap {
+    auto_header = yes
+}
+PAPEOF
+chown freerad:freerad /etc/freeradius/3.0/mods-enabled/pap
+chmod 640 /etc/freeradius/3.0/mods-enabled/pap
 
-# Update the files module to use mab_users
-echo "Configuring files module to use mab_users..."
-if [ -f "/etc/freeradius/3.0/mods-enabled/files" ]; then
-    cat > /etc/freeradius/3.0/mods-enabled/files << 'FILESEOF'
+# Create files module pointing to mab_users
+cat > /etc/freeradius/3.0/mods-enabled/files << 'FILESEOF'
 files {
     usersfile = ${confdir}/mab_users
 }
 FILESEOF
-    chown freerad:freerad /etc/freeradius/3.0/mods-enabled/files
-    chmod 640 /etc/freeradius/3.0/mods-enabled/files
-else
-    echo "Warning: files module not found, creating minimal version..."
-    cat > /etc/freeradius/3.0/mods-enabled/files << 'FILESEOF'
-files {
-    usersfile = ${confdir}/mab_users
+chown freerad:freerad /etc/freeradius/3.0/mods-enabled/files
+chmod 640 /etc/freeradius/3.0/mods-enabled/files
+
+# Create attr_filter module
+mkdir -p /etc/freeradius/3.0/mods-config/attr_filter
+cat > /etc/freeradius/3.0/mods-enabled/attr_filter << 'ATTREOF'
+attr_filter attr_filter.access_reject {
+    filename = ${modconfdir}/attr_filter/access-reject
 }
-FILESEOF
-    chown freerad:freerad /etc/freeradius/3.0/mods-enabled/files
-    chmod 640 /etc/freeradius/3.0/mods-enabled/files
-fi
+ATTREOF
+chown freerad:freerad /etc/freeradius/3.0/mods-enabled/attr_filter
+chmod 640 /etc/freeradius/3.0/mods-enabled/attr_filter
+
+# Create access-reject file
+cat > /etc/freeradius/3.0/mods-config/attr_filter/access-reject << 'REJECTEOF'
+Reply-Message
+REJECTEOF
+chown freerad:freerad /etc/freeradius/3.0/mods-config/attr_filter/access-reject
+chmod 640 /etc/freeradius/3.0/mods-config/attr_filter/access-reject
+
+# Create detail module for accounting
+cat > /etc/freeradius/3.0/mods-enabled/detail << 'DETAILEOF'
+detail {
+    filename = ${radacctdir}/detail
+    header = "%t"
+    permissions = 0600
+    locking = no
+    escape_user_name = no
+}
+DETAILEOF
+chown freerad:freerad /etc/freeradius/3.0/mods-enabled/detail
+chmod 640 /etc/freeradius/3.0/mods-enabled/detail
 
 # Ensure sites-enabled has the default site
 echo "Setting up default site..."
-rm -rf /etc/freeradius/3.0/sites-enabled/*
+mkdir -p /etc/freeradius/3.0/sites-enabled
 cp /etc/freeradius/3.0/sites-available/default /etc/freeradius/3.0/sites-enabled/default 2>/dev/null || true
 chown freerad:freerad /etc/freeradius/3.0/sites-enabled/default
 chmod 640 /etc/freeradius/3.0/sites-enabled/default
+
+echo "FreeRADIUS modules configured successfully"
 
 # Create systemd override to force FreeRADIUS to use our config
 mkdir -p /etc/systemd/system/freeradius.service.d
