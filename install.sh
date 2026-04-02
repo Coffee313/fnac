@@ -142,6 +142,12 @@ attr_filter attr_filter.access_reject {
 }
 ATTREOF
 
+# Create access-reject file - MUST create directory first
+mkdir -p /etc/freeradius/3.0/mods-config/attr_filter
+cat > /etc/freeradius/3.0/mods-config/attr_filter/access-reject << 'REJECTEOF'
+Reply-Message
+REJECTEOF
+
 # Detail module
 cat > /etc/freeradius/3.0/mods-enabled/detail << 'DETAILEOF'
 detail {
@@ -152,11 +158,6 @@ detail {
     escape_user_name = no
 }
 DETAILEOF
-
-# Create access-reject file
-cat > /etc/freeradius/3.0/mods-config/attr_filter/access-reject << 'REJECTEOF'
-Reply-Message
-REJECTEOF
 
 # Create default site
 echo "Creating default site configuration..."
