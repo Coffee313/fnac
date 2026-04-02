@@ -87,11 +87,12 @@ class Log_Manager:
         )
         self._logs.append(log)
         
+        # Save immediately
+        self._save_data()
+        
         # Check if rotation is needed
         self._rotate_logs()
         
-        # Note: Database persistence is handled by the caller (e.g., log parser)
-        # This allows the caller to override timestamps before saving
         return log
 
     def list_logs(self) -> List[AuthenticationLog]:
