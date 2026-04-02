@@ -520,6 +520,18 @@ button:active {
     background: #764ba2;
 }
 
+.btn-secondary {
+    background: #3498db;
+    padding: 10px 20px;
+    font-size: 0.95em;
+    width: 100%;
+    margin-bottom: 10px;
+}
+
+.btn-secondary:hover {
+    background: #2980b9;
+}
+
 .import-results {
     margin-top: 15px;
     padding: 15px;

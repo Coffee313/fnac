@@ -538,3 +538,76 @@ document.getElementById('importForm').addEventListener('submit', async (e) => {
         showMessage('Error importing configuration', 'error');
     }
 });
+
+// CSV Import/Export for Clients
+document.getElementById('downloadCsvTemplate')?.addEventListener('click', async () => {
+    try {
+        const response = await fetch(`${API_URL}/clients/csv-template`);
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'clients_template.csv';
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+        showMessage('CSV template downloaded');
+    } catch (e) {
+        showMessage('Error downloading CSV template', 'error');
+    }
+});
+
+document.getElementById('csvImportForm')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const fileInput = document.getElementById('csvFile');
+    const file = fileInput.files[0];
+    
+    if (!file) {
+        showMessage('Please select a CSV file', 'error');
+        return;
+    }
+    
+    try {
+        const formData = new FormData();
+        formData.append('file', file);
+        
+        const response = await fetch(`${API_URL}/clients/csv-import`, {
+            method: 'POST',
+            body: formData
+        });
+        
+        const data = await response.json();
+        
+        if (!response.ok) {
+            showMessage(data.error || 'CSV import failed', 'error');
+            return;
+        }
+        
+        const results = data.results;
+        const resultsDiv = document.getElementById('csvImportResults');
+        
+        let html = `<h4>Import Results</h4>`;
+        html += `<div class="import-result-item"><strong>Imported:</strong> ${results.imported}</div>`;
+        html += `<div class="import-result-item"><strong>Failed:</strong> ${results.failed}</div>`;
+        
+        if (results.errors.length > 0) {
+            html += `<div class="import-result-item"><strong>Errors:</strong><small>${results.errors.join('<br>')}</small></div>`;
+        }
+        
+        resultsDiv.innerHTML = html;
+        resultsDiv.style.display = 'block';
+        
+        showMessage(`CSV import complete: ${results.imported} imported, ${results.failed} failed`);
+        
+        fileInput.value = '';
+        
+        // Reload clients
+        setTimeout(() => {
+            loadClients();
+        }, 500);
+    } catch (e) {
+        showMessage('Error importing CSV', 'error');
+    }
+});

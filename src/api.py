@@ -446,4 +446,95 @@ def create_app(
             logger.error(f"Error importing config: {e}")
             return _err(f"Import failed: {str(e)}")
 
+    # ------------------------------------------------------------------
+    # CSV Import/Export for Clients
+    # ------------------------------------------------------------------
+
+    @app.route("/api/clients/csv-template", methods=["GET"])
+    def download_csv_template():
+        """Download CSV template for bulk client import."""
+        import csv
+        from io import StringIO
+        from flask import make_response
+        
+        output = StringIO()
+        writer = csv.writer(output)
+        
+        # Write header
+        writer.writerow(['MAC Address', 'Client Name', 'Client Group'])
+        
+        # Write example rows
+        writer.writerow(['aa:bb:cc:dd:ee:ff', 'Example Client 1', 'Group1'])
+        writer.writerow(['11:22:33:44:55:66', 'Example Client 2', 'Group1'])
+        
+        response = make_response(output.getvalue())
+        response.headers["Content-Disposition"] = "attachment; filename=clients_template.csv"
+        response.headers["Content-Type"] = "text/csv"
+        return response
+
+    @app.route("/api/clients/csv-import", methods=["POST"])
+    def import_clients_csv():
+        """Import clients from CSV file."""
+        import csv
+        from io import StringIO
+        
+        try:
+            if 'file' not in request.files:
+                return _err("No file provided")
+            
+            file = request.files['file']
+            if file.filename == '':
+                return _err("No file selected")
+            
+            if not file.filename.endswith('.csv'):
+                return _err("File must be CSV format")
+            
+            # Read CSV
+            stream = StringIO(file.stream.read().decode("UTF8"), newline=None)
+            reader = csv.DictReader(stream)
+            
+            if not reader.fieldnames or 'MAC Address' not in reader.fieldnames:
+                return _err("CSV must have 'MAC Address' column")
+            
+            results = {
+                "imported": 0,
+                "failed": 0,
+                "errors": []
+            }
+            
+            for row_num, row in enumerate(reader, start=2):  # Start at 2 (after header)
+                try:
+                    mac = row.get('MAC Address', '').strip()
+                    name = row.get('Client Name', '').strip()
+                    group = row.get('Client Group', '').strip()
+                    
+                    if not mac:
+                        results["errors"].append(f"Row {row_num}: MAC Address is required")
+                        results["failed"] += 1
+                        continue
+                    
+                    if not group:
+                        results["errors"].append(f"Row {row_num}: Client Group is required")
+                        results["failed"] += 1
+                        continue
+                    
+                    # Create client
+                    client_manager.create_client(mac, group, name=name)
+                    results["imported"] += 1
+                
+                except Exception as e:
+                    results["errors"].append(f"Row {row_num}: {str(e)}")
+                    results["failed"] += 1
+            
+            _update_freeradius_config()
+            
+            return jsonify({
+                "status": "success",
+                "results": results
+            }), 201
+        
+        except Exception as e:
+            logger.error(f"Error importing CSV: {e}")
+            return _err(f"CSV import failed: {str(e)}")
+
     return app

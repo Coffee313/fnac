@@ -102,6 +102,16 @@
                                 <button type="submit">Add Group</button>
                             </form>
                         </div>
+                        <div class="section">
+                            <h3>Bulk Import Clients</h3>
+                            <p>Import multiple clients from CSV file</p>
+                            <button id="downloadCsvTemplate" class="btn-secondary">Download CSV Template</button>
+                            <form id="csvImportForm" class="form" style="margin-top: 10px;">
+                                <input type="file" id="csvFile" accept=".csv" required>
+                                <button type="submit">Import from CSV</button>
+                            </form>
+                            <div id="csvImportResults" class="import-results" style="display:none;"></div>
+                        </div>
                     </div>
                     <div class="section full-width">
                         <h3>Client Groups</h3>
