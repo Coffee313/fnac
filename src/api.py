@@ -131,11 +131,17 @@ def create_app(
         }
 
     def _log_to_dict(l):
-        from src.models import normalize_mac_no_delimiters
+        try:
+            from src.models import normalize_mac_no_delimiters
+            mac = normalize_mac_no_delimiters(l.client_mac)
+        except Exception:
+            # Fallback: just remove colons from the MAC address
+            mac = l.client_mac.replace(':', '').lower() if l.client_mac else ''
+        
         return {
             "id": l.id,
             "timestamp": l.timestamp.isoformat(),
-            "client_mac": normalize_mac_no_delimiters(l.client_mac),
+            "client_mac": mac,
             "device_id": l.device_id,
             "outcome": l.outcome.value,
             "vlan_id": l.vlan_id,
