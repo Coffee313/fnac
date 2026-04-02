@@ -161,6 +161,7 @@ DETAILEOF
 
 # Create default site
 echo "Creating default site configuration..."
+mkdir -p /etc/freeradius/3.0/sites-available
 cat > /etc/freeradius/3.0/sites-available/default << 'SITEEOF'
 server default {
     authorize {
@@ -183,6 +184,7 @@ server default {
 SITEEOF
 
 # Enable default site
+mkdir -p /etc/freeradius/3.0/sites-enabled
 ln -sf ../sites-available/default /etc/freeradius/3.0/sites-enabled/default 2>/dev/null || true
 
 # Create empty mab_users file
