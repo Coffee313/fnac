@@ -224,6 +224,15 @@ MABUSEREOF
 chown freerad:freerad /etc/freeradius/3.0/mab_users
 chmod 640 /etc/freeradius/3.0/mab_users
 
+# Create systemd override to force FreeRADIUS to use our config
+mkdir -p /etc/systemd/system/freeradius.service.d
+cat > /etc/systemd/system/freeradius.service.d/override.conf << 'OVERRIDEEOF'
+[Service]
+ExecStart=
+ExecStart=/usr/sbin/freeradius -d /etc/freeradius/3.0 -f
+OVERRIDEEOF
+systemctl daemon-reload
+
 echo "[2/7] Creating FNAC user and group..."
 if ! id "$FNAC_USER" &>/dev/null; then
     groupadd -r "$FNAC_GROUP" 2>/dev/null || true
