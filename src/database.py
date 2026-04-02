@@ -116,39 +116,38 @@ class Database:
         try:
             # Check if devices table has old 'id' column instead of 'name'
             cursor.execute("PRAGMA table_info(devices)")
-            columns = [row[1] for row in cursor.fetchall()]
+            columns = {row[1]: row for row in cursor.fetchall()}
             
             if 'id' in columns and 'name' not in columns:
                 logger.info("Migrating devices table from 'id' to 'name'")
                 cursor.execute("ALTER TABLE devices RENAME COLUMN id TO name")
             
-            # Check if clients table has old 'id' column
-            cursor.execute("PRAGMA table_info(clients)")
-            columns = [row[1] for row in cursor.fetchall()]
-            
-            if 'id' in columns and 'mac_address' not in columns:
-                logger.info("Migrating clients table")
-                # This would require more complex migration, but shouldn't happen with new code
-                pass
-            
             # Check if policies table has old 'id' column
             cursor.execute("PRAGMA table_info(policies)")
-            columns = [row[1] for row in cursor.fetchall()]
+            columns = {row[1]: row for row in cursor.fetchall()}
             
             if 'id' in columns and 'name' not in columns:
                 logger.info("Migrating policies table from 'id' to 'name'")
                 cursor.execute("ALTER TABLE policies RENAME COLUMN id TO name")
             
+            # Check if policies table has old 'client_group_id' instead of 'client_group_name'
+            cursor.execute("PRAGMA table_info(policies)")
+            columns = {row[1]: row for row in cursor.fetchall()}
+            
+            if 'client_group_id' in columns and 'client_group_name' not in columns:
+                logger.info("Migrating policies table from 'client_group_id' to 'client_group_name'")
+                cursor.execute("ALTER TABLE policies RENAME COLUMN client_group_id TO client_group_name")
+            
             # Check if auth_logs table has policy_name column
             cursor.execute("PRAGMA table_info(auth_logs)")
-            columns = [row[1] for row in cursor.fetchall()]
+            columns = {row[1]: row for row in cursor.fetchall()}
             
             if 'policy_name' not in columns:
                 logger.info("Adding policy_name column to auth_logs table")
                 cursor.execute("ALTER TABLE auth_logs ADD COLUMN policy_name TEXT")
         
         except Exception as e:
-            logger.warning(f"Schema migration warning (may be normal): {e}")
+            logger.warning(f"Schema migration: {e}")
 
     def close(self) -> None:
         """Close database connection."""
