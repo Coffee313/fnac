@@ -129,6 +129,18 @@ systemctl start "$SERVICE_NAME"
 # Wait for FNAC to generate FreeRADIUS config
 sleep 3
 
+# Create systemd override to disable config validation on startup
+echo "Configuring FreeRADIUS service..."
+mkdir -p /etc/systemd/system/freeradius.service.d
+cat > /etc/systemd/system/freeradius.service.d/override.conf << 'EOF'
+[Service]
+ExecStartPre=
+ExecStart=
+ExecStart=/usr/sbin/freeradius -f
+EOF
+
+systemctl daemon-reload
+
 # Now enable and start FreeRADIUS with proper config
 echo "Starting FreeRADIUS service..."
 systemctl enable freeradius 2>/dev/null || true

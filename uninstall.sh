@@ -47,6 +47,10 @@ echo "[5/5] Cleaning up..."
 # Stop FreeRADIUS service
 systemctl stop freeradius 2>/dev/null || true
 
+# Remove FreeRADIUS systemd override
+rm -rf /etc/systemd/system/freeradius.service.d 2>/dev/null || true
+systemctl daemon-reload 2>/dev/null || true
+
 # Remove FreeRADIUS completely
 echo "Removing FreeRADIUS..."
 apt-get purge -y freeradius freeradius-utils 2>/dev/null || true
