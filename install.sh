@@ -125,7 +125,7 @@ systemctl enable "$SERVICE_NAME"
 
 echo "[7/7] Starting services..."
 
-# Disable FreeRADIUS from auto-starting
+# Disable FreeRADIUS from auto-starting during installation
 systemctl disable freeradius 2>/dev/null || true
 systemctl stop freeradius 2>/dev/null || true
 
@@ -227,18 +227,8 @@ mv /tmp/override.conf /etc/systemd/system/freeradius.service.d/override.conf
 
 systemctl daemon-reload
 
-# Now enable and start FreeRADIUS
-echo "Starting FreeRADIUS service..."
+# Enable FreeRADIUS to start on boot
 systemctl enable freeradius 2>/dev/null || true
-systemctl start freeradius 2>/dev/null || true
-sleep 2
-
-# Check if FreeRADIUS started successfully
-if systemctl is-active --quiet freeradius; then
-    echo "FreeRADIUS started successfully"
-else
-    echo "Warning: FreeRADIUS failed to start. Check logs with: sudo journalctl -u freeradius -n 50"
-fi
 
 echo ""
 echo "=========================================="
@@ -246,7 +236,6 @@ echo "Installation Complete!"
 echo "=========================================="
 echo ""
 echo "FNAC is now running at: http://localhost:5000"
-echo "FreeRADIUS is running on UDP port 1812"
 echo ""
 echo "Useful commands:"
 echo "  Start FNAC:      systemctl start fnac"
@@ -264,4 +253,5 @@ echo "1. Open http://localhost:5000 in your browser"
 echo "2. Create device groups and devices"
 echo "3. Create client groups and clients"
 echo "4. Create policies for authentication"
+echo "5. FreeRADIUS will start automatically when you create your first device"
 echo ""
