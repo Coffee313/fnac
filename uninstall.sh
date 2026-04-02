@@ -44,16 +44,16 @@ userdel "$FNAC_USER" 2>/dev/null || true
 groupdel "$FNAC_GROUP" 2>/dev/null || true
 
 echo "[5/5] Cleaning up..."
-# Remove FreeRADIUS configuration and data
-echo "Removing FreeRADIUS configuration..."
-rm -rf /etc/freeradius/3.0/mods-config/files/authorize.fnac 2>/dev/null || true
-rm -rf /etc/freeradius/3.0/sites-available/fnac 2>/dev/null || true
-rm -rf /etc/freeradius/3.0/sites-enabled/fnac 2>/dev/null || true
-rm -rf /etc/freeradius/3.0/mods-enabled/fnac* 2>/dev/null || true
-rm -rf /etc/freeradius/3.0/mods-available/fnac* 2>/dev/null || true
+# Stop FreeRADIUS service
+systemctl stop freeradius 2>/dev/null || true
 
-# Restart FreeRADIUS to reload configuration
-systemctl restart freeradius 2>/dev/null || true
+# Remove FreeRADIUS completely
+echo "Removing FreeRADIUS..."
+apt-get purge -y freeradius freeradius-utils 2>/dev/null || true
+
+# Remove FreeRADIUS configuration directory
+rm -rf /etc/freeradius 2>/dev/null || true
+rm -rf /var/lib/freeradius 2>/dev/null || true
 
 echo ""
 echo "=========================================="
@@ -61,8 +61,8 @@ echo "Uninstallation Complete!"
 echo "=========================================="
 echo ""
 echo "FNAC has been removed from $INSTALL_DIR"
+echo "FreeRADIUS has been completely removed."
 echo ""
-echo "FreeRADIUS configuration has been cleaned."
-echo "To completely remove FreeRADIUS:"
-echo "  sudo apt-get remove freeradius freeradius-utils"
+echo "To reinstall FreeRADIUS fresh, run:"
+echo "  sudo apt-get install freeradius freeradius-utils"
 echo ""
