@@ -38,15 +38,16 @@ def validate_ipv4_address(ip_address: str) -> bool:
     return True
 
 
-def validate_mac_address(mac_address: str) -> bool:
+def validate_mac_address(mac_address: str) -> str:
     """
-    Validate that a string is a valid MAC address in XX:XX:XX:XX:XX:XX format.
+    Validate and normalize a MAC address to XX:XX:XX:XX:XX:XX format.
+    Accepts multiple input formats: colon, dash, dot, or no separator.
     
     Args:
         mac_address: String to validate as MAC address
         
     Returns:
-        True if valid MAC address format, False otherwise
+        Normalized MAC address in XX:XX:XX:XX:XX:XX format
         
     Raises:
         ValueError: If mac_address is not a valid MAC address
@@ -57,13 +58,15 @@ def validate_mac_address(mac_address: str) -> bool:
     if not mac_address:
         raise ValueError("MAC address cannot be empty")
     
-    # MAC address regex pattern: matches XX:XX:XX:XX:XX:XX where X is a hexadecimal digit
-    mac_pattern = r'^([0-9A-Fa-f]{2}:){5}([0-9A-Fa-f]{2})$'
+    # Remove common separators and convert to lowercase
+    normalized = mac_address.replace(':', '').replace('-', '').replace('.', '').lower()
     
-    if not re.match(mac_pattern, mac_address):
-        raise ValueError(f"Invalid MAC address format: {mac_address}. Expected XX:XX:XX:XX:XX:XX")
+    # Check if it's 12 hex characters
+    if not re.match(r'^[0-9a-f]{12}$', normalized):
+        raise ValueError(f"Invalid MAC address format: {mac_address}. Expected 12 hexadecimal characters (with or without separators)")
     
-    return True
+    # Convert to colon-separated format
+    return ':'.join(normalized[i:i+2] for i in range(0, 12, 2))
 
 
 class PolicyDecision(Enum):
@@ -111,8 +114,8 @@ class Client:
     updated_at: datetime = field(default_factory=datetime.utcnow)
     
     def __post_init__(self):
-        """Validate client attributes after initialization."""
-        validate_mac_address(self.mac_address)
+        """Validate and normalize client attributes after initialization."""
+        self.mac_address = validate_mac_address(self.mac_address)
 
 
 @dataclass

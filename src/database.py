@@ -99,6 +99,7 @@ class Database:
                 outcome TEXT NOT NULL,
                 vlan_id INTEGER,
                 policy_decision TEXT,
+                policy_name TEXT,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         """)

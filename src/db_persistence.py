@@ -264,6 +264,7 @@ class LogPersistence:
                 outcome=AuthenticationOutcome(row['outcome']),
                 vlan_id=row['vlan_id'],
                 policy_decision=row['policy_decision'],
+                policy_name=row['policy_name'],
                 created_at=datetime.fromisoformat(row['created_at']),
             ))
         return logs
@@ -276,10 +277,10 @@ class LogPersistence:
         cursor = conn.cursor()
         
         cursor.execute("""
-            INSERT INTO auth_logs (id, timestamp, client_mac, device_id, outcome, vlan_id, policy_decision, created_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO auth_logs (id, timestamp, client_mac, device_id, outcome, vlan_id, policy_decision, policy_name, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         """, (log.id, log.timestamp.isoformat(), log.client_mac, log.device_id,
-              log.outcome.value, log.vlan_id, log.policy_decision, log.created_at.isoformat()))
+              log.outcome.value, log.vlan_id, log.policy_decision, log.policy_name, log.created_at.isoformat()))
         
         conn.commit()
         conn.close()
@@ -297,10 +298,10 @@ class LogPersistence:
         # Insert new logs
         for log in logs:
             cursor.execute("""
-                INSERT INTO auth_logs (id, timestamp, client_mac, device_id, outcome, vlan_id, policy_decision, created_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO auth_logs (id, timestamp, client_mac, device_id, outcome, vlan_id, policy_decision, policy_name, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, (log.id, log.timestamp.isoformat(), log.client_mac, log.device_id,
-                  log.outcome.value, log.vlan_id, log.policy_decision, log.created_at.isoformat()))
+                  log.outcome.value, log.vlan_id, log.policy_decision, log.policy_name, log.created_at.isoformat()))
         
         conn.commit()
         conn.close()
