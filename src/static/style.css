@@ -371,11 +371,11 @@ button:active {
 }
 
 .log-item.log-success {
-    border-left: 3px solid #333;
+    border-left: 3px solid #22c55e;
 }
 
 .log-item.log-failure {
-    border-left: 3px solid #666;
+    border-left: 3px solid #ef4444;
 }
 
 .log-status-indicator {
@@ -386,11 +386,11 @@ button:active {
 }
 
 .log-status-indicator.status-accept {
-    background: #333;
+    background: #22c55e;
 }
 
 .log-status-indicator.status-reject {
-    background: #999;
+    background: #ef4444;
 }
 
 .log-content {

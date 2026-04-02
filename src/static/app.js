@@ -464,7 +464,7 @@ async function loadLogs() {
             const isSuccess = l.outcome === 'success';
             const statusText = isSuccess ? 'ACCEPT' : 'REJECT';
             const vlanInfo = l.vlan_id ? ` • VLAN ${l.vlan_id}` : '';
-            const policyInfo = l.policy_name ? ` • Policy: ${l.policy_name}` : '';
+            const policyInfo = l.policy_name ? ` • ${l.policy_name}` : '';
             
             return `
                 <div class="log-item ${isSuccess ? 'log-success' : 'log-failure'}">
