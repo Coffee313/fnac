@@ -85,8 +85,10 @@ listen {
     proto = udp
 }
 
-# Include all modules from mods-enabled
-$INCLUDE mods-enabled/
+# Define modules section - include all modules from mods-enabled
+modules {
+    $INCLUDE mods-enabled/
+}
 
 # Include all sites from sites-enabled
 $INCLUDE sites-enabled/
