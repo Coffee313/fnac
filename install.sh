@@ -160,30 +160,43 @@ echo "Setting up FreeRADIUS modules from package..."
 # Remove old mods-enabled to start fresh
 rm -rf /etc/freeradius/3.0/mods-enabled/*
 
-# Create symlinks for required modules
-for module in pap files attr_filter detail; do
-    if [ -f "/etc/freeradius/3.0/mods-available/$module" ]; then
-        ln -sf ../mods-available/$module /etc/freeradius/3.0/mods-enabled/$module
-        echo "Enabled module: $module"
-    else
-        echo "Warning: Module $module not found in mods-available"
-    fi
-done
+# Copy all modules from mods-available to mods-enabled
+if [ -d "/etc/freeradius/3.0/mods-available" ]; then
+    echo "Copying modules from mods-available..."
+    cp -r /etc/freeradius/3.0/mods-available/* /etc/freeradius/3.0/mods-enabled/ 2>/dev/null || true
+    
+    # List what we got
+    echo "Modules in mods-enabled:"
+    ls -la /etc/freeradius/3.0/mods-enabled/ | head -20
+fi
 
 # Update the files module to use mab_users
 echo "Configuring files module to use mab_users..."
-cat > /etc/freeradius/3.0/mods-enabled/files << 'FILESEOF'
+if [ -f "/etc/freeradius/3.0/mods-enabled/files" ]; then
+    cat > /etc/freeradius/3.0/mods-enabled/files << 'FILESEOF'
 files {
     usersfile = ${confdir}/mab_users
 }
 FILESEOF
-chown freerad:freerad /etc/freeradius/3.0/mods-enabled/files
-chmod 640 /etc/freeradius/3.0/mods-enabled/files
+    chown freerad:freerad /etc/freeradius/3.0/mods-enabled/files
+    chmod 640 /etc/freeradius/3.0/mods-enabled/files
+else
+    echo "Warning: files module not found, creating minimal version..."
+    cat > /etc/freeradius/3.0/mods-enabled/files << 'FILESEOF'
+files {
+    usersfile = ${confdir}/mab_users
+}
+FILESEOF
+    chown freerad:freerad /etc/freeradius/3.0/mods-enabled/files
+    chmod 640 /etc/freeradius/3.0/mods-enabled/files
+fi
 
 # Ensure sites-enabled has the default site
 echo "Setting up default site..."
 rm -rf /etc/freeradius/3.0/sites-enabled/*
-ln -sf ../sites-available/default /etc/freeradius/3.0/sites-enabled/default 2>/dev/null || true
+cp /etc/freeradius/3.0/sites-available/default /etc/freeradius/3.0/sites-enabled/default 2>/dev/null || true
+chown freerad:freerad /etc/freeradius/3.0/sites-enabled/default
+chmod 640 /etc/freeradius/3.0/sites-enabled/default
 
 # Create systemd override to force FreeRADIUS to use our config
 mkdir -p /etc/systemd/system/freeradius.service.d
