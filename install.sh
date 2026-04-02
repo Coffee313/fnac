@@ -219,32 +219,42 @@ systemctl unmask freeradius 2>/dev/null || true
 systemctl disable freeradius 2>/dev/null || true
 systemctl stop freeradius 2>/dev/null || true
 
-# CRITICAL FIX: Set proper permissions for FreeRADIUS config
+# CRITICAL FIX: Recreate directories and set proper permissions
 # FreeRADIUS refuses to start if config directory is world-writable (777)
-# Solution: Use group-based permissions instead
+# Solution: Use group-based permissions with freerad as owner
+
+# Recreate all required directories
+mkdir -p /etc/freeradius/3.0/mods-config/files
+mkdir -p /etc/freeradius/3.0/mods-enabled
+mkdir -p /etc/freeradius/3.0/sites-enabled
+
+# Ensure freerad owns everything
+chown -R freerad:freerad /etc/freeradius/3.0
+chown -R freerad:freerad /var/lib/freeradius
+chown -R freerad:freerad /var/run/freeradius
+chown -R freerad:freerad /var/log/freeradius
+
 # Add fnac user to freerad group so it can write to config files
 usermod -a -G freerad fnac 2>/dev/null || true
 
 # Set directory permissions: 750 (rwxr-x---)
-# Owner (freerad) can read/write/execute
-# Group (freerad) can read/execute
 chmod 750 /etc/freeradius/3.0
-chmod 750 /etc/freeradius/3.0/mods-enabled 2>/dev/null || true
-chmod 750 /etc/freeradius/3.0/sites-enabled 2>/dev/null || true
-chmod 750 /etc/freeradius/3.0/mods-config 2>/dev/null || true
+chmod 750 /etc/freeradius/3.0/mods-enabled
+chmod 750 /etc/freeradius/3.0/sites-enabled
+chmod 750 /etc/freeradius/3.0/mods-config
 
 # Set file permissions: 640 (rw-r-----)
-# Owner (freerad) can read/write
-# Group (freerad) can read
 chmod 640 /etc/freeradius/3.0/clients.conf 2>/dev/null || true
 chmod 640 /etc/freeradius/3.0/mab_users 2>/dev/null || true
 chmod 640 /etc/freeradius/3.0/radiusd.conf 2>/dev/null || true
 chmod 640 /etc/freeradius/3.0/mods-enabled/files 2>/dev/null || true
 chmod 640 /etc/freeradius/3.0/sites-enabled/default 2>/dev/null || true
 
-# Ensure files exist
+# Ensure files exist and are owned by freerad
 touch /etc/freeradius/3.0/clients.conf
 touch /etc/freeradius/3.0/mab_users
+chown freerad:freerad /etc/freeradius/3.0/clients.conf
+chown freerad:freerad /etc/freeradius/3.0/mab_users
 chmod 640 /etc/freeradius/3.0/clients.conf
 chmod 640 /etc/freeradius/3.0/mab_users
 
