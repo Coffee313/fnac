@@ -529,8 +529,12 @@ def create_app(
                 if 'group' in field.lower() and group_col is None:
                     group_col = field
             
+            # Get existing clients for update/create logic
+            existing_clients = {c.mac_address.lower(): c for c in client_manager.list_clients()}
+            
             results = {
                 "imported": 0,
+                "updated": 0,
                 "failed": 0,
                 "errors": []
             }
@@ -551,9 +555,26 @@ def create_app(
                         results["failed"] += 1
                         continue
                     
-                    # Create client
-                    client_manager.create_client(mac, group, name=name)
-                    results["imported"] += 1
+                    # Normalize MAC for comparison
+                    from src.models import validate_mac_address
+                    normalized_mac = validate_mac_address(mac)
+                    mac_lower = normalized_mac.lower()
+                    
+                    # Check if client already exists
+                    if mac_lower in existing_clients:
+                        # Update existing client
+                        client_manager.update_client(normalized_mac, group)
+                        # Update name if provided
+                        if name:
+                            existing_client = existing_clients[mac_lower]
+                            existing_client.name = name
+                            client_manager._save_data()
+                        results["updated"] += 1
+                    else:
+                        # Create new client
+                        client_manager.create_client(mac, group, name=name)
+                        existing_clients[mac_lower] = client_manager.get_client(normalized_mac)
+                        results["imported"] += 1
                 
                 except Exception as e:
                     results["errors"].append(f"Row {row_num}: {str(e)}")

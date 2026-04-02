@@ -590,6 +590,7 @@ document.getElementById('csvImportForm')?.addEventListener('submit', async (e) =
         
         let html = `<h4>Import Results</h4>`;
         html += `<div class="import-result-item"><strong>Imported:</strong> ${results.imported}</div>`;
+        html += `<div class="import-result-item"><strong>Updated:</strong> ${results.updated}</div>`;
         html += `<div class="import-result-item"><strong>Failed:</strong> ${results.failed}</div>`;
         
         if (results.errors.length > 0) {
@@ -599,7 +600,7 @@ document.getElementById('csvImportForm')?.addEventListener('submit', async (e) =
         resultsDiv.innerHTML = html;
         resultsDiv.style.display = 'block';
         
-        showMessage(`CSV import complete: ${results.imported} imported, ${results.failed} failed`);
+        showMessage(`CSV import complete: ${results.imported} imported, ${results.updated} updated, ${results.failed} failed`);
         
         fileInput.value = '';
         
