@@ -126,6 +126,14 @@ class Database:
                 logger.info("Migrating devices table from 'id' to 'name'")
                 cursor.execute("ALTER TABLE devices RENAME COLUMN id TO name")
             
+            # Check if clients table has old 'client_group_id' instead of 'client_group_name'
+            cursor.execute("PRAGMA table_info(clients)")
+            columns = {row[1]: row for row in cursor.fetchall()}
+            
+            if 'client_group_id' in columns and 'client_group_name' not in columns:
+                logger.info("Migrating clients table from 'client_group_id' to 'client_group_name'")
+                cursor.execute("ALTER TABLE clients RENAME COLUMN client_group_id TO client_group_name")
+            
             # Check if policies table has old 'id' column
             cursor.execute("PRAGMA table_info(policies)")
             columns = {row[1]: row for row in cursor.fetchall()}

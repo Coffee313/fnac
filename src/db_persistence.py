@@ -168,11 +168,23 @@ class ClientPersistence:
         
         # Insert new clients
         for client in clients:
-            cursor.execute("""
-                INSERT INTO clients (mac_address, client_group_name, created_at, updated_at)
-                VALUES (?, ?, ?, ?)
-            """, (client.mac_address, client.client_group_name,
-                  client.created_at.isoformat(), client.updated_at.isoformat()))
+            try:
+                cursor.execute("""
+                    INSERT INTO clients (mac_address, client_group_name, created_at, updated_at)
+                    VALUES (?, ?, ?, ?)
+                """, (client.mac_address, client.client_group_name,
+                      client.created_at.isoformat(), client.updated_at.isoformat()))
+            except Exception as e:
+                logger.warning(f"Error saving client {client.mac_address}: {e}")
+                # Try with old column name if new one fails
+                try:
+                    cursor.execute("""
+                        INSERT INTO clients (mac_address, client_group_id, created_at, updated_at)
+                        VALUES (?, ?, ?, ?)
+                    """, (client.mac_address, client.client_group_name,
+                          client.created_at.isoformat(), client.updated_at.isoformat()))
+                except Exception as e2:
+                    logger.error(f"Failed to save client {client.mac_address}: {e2}")
         
         conn.commit()
         conn.close()
