@@ -40,7 +40,7 @@ apt-get install -y python3 python3-pip python3-venv git
 echo "Pre-creating FreeRADIUS user and directories..."
 id -u freerad >/dev/null 2>&1 || useradd -r -s /bin/false freerad 2>/dev/null || true
 
-# Create all required directories
+# Create all required directories FIRST
 mkdir -p /etc/freeradius/3.0/mods-enabled
 mkdir -p /etc/freeradius/3.0/mods-available
 mkdir -p /etc/freeradius/3.0/sites-enabled
@@ -49,6 +49,12 @@ mkdir -p /etc/freeradius/3.0/mods-config/attr_filter
 mkdir -p /var/lib/freeradius
 mkdir -p /var/run/freeradius
 mkdir -p /var/log/freeradius/radacct
+
+# Verify directories exist
+if [ ! -d "/etc/freeradius/3.0/mods-enabled" ]; then
+    echo "ERROR: Failed to create /etc/freeradius/3.0/mods-enabled"
+    exit 1
+fi
 
 # Mask FreeRADIUS service to prevent it from starting during installation
 echo "Masking FreeRADIUS service during installation..."
@@ -112,6 +118,11 @@ RADIUSEOF
 # Create minimal working modules
 echo "Creating FreeRADIUS modules..."
 
+# Verify mods-enabled directory exists before writing
+if [ ! -d "/etc/freeradius/3.0/mods-enabled" ]; then
+    mkdir -p /etc/freeradius/3.0/mods-enabled
+fi
+
 # PAP module
 cat > /etc/freeradius/3.0/mods-enabled/pap << 'PAPEOF'
 pap {
@@ -152,6 +163,7 @@ REJECTEOF
 
 # Create default site
 echo "Creating default site configuration..."
+mkdir -p /etc/freeradius/3.0/sites-available
 cat > /etc/freeradius/3.0/sites-available/default << 'SITEEOF'
 server default {
     authorize {
@@ -174,6 +186,7 @@ server default {
 SITEEOF
 
 # Enable default site
+mkdir -p /etc/freeradius/3.0/sites-enabled
 ln -sf ../sites-available/default /etc/freeradius/3.0/sites-enabled/default 2>/dev/null || true
 
 # Create empty mab_users file
