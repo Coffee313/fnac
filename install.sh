@@ -23,10 +23,47 @@ fi
 
 echo "[1/7] Updating system packages..."
 apt-get update
+
+# Complete cleanup of broken FreeRADIUS
+echo "Cleaning up any broken FreeRADIUS installation..."
+systemctl stop freeradius 2>/dev/null || true
+dpkg --remove --force-all freeradius freeradius-utils 2>/dev/null || true
+apt-get clean
+rm -rf /etc/freeradius /var/lib/freeradius /var/cache/freeradius 2>/dev/null || true
+apt-get --fix-broken install -y 2>/dev/null || true
+apt-get autoremove -y 2>/dev/null || true
+
+# Install dependencies
 apt-get install -y python3 python3-pip python3-venv git
 
-# FreeRADIUS is optional - FNAC has a built-in RADIUS server
-echo "Skipping FreeRADIUS installation (FNAC has built-in RADIUS server)"
+# Create freerad user and directories BEFORE installing package
+echo "Pre-creating FreeRADIUS user and directories..."
+id -u freerad >/dev/null 2>&1 || useradd -r -s /bin/false freerad 2>/dev/null || true
+mkdir -p /etc/freeradius/3.0/mods-config/files
+mkdir -p /var/lib/freeradius
+mkdir -p /var/run/freeradius
+chown -R freerad:freerad /etc/freeradius /var/lib/freeradius /var/run/freeradius 2>/dev/null || true
+chmod -R 755 /etc/freeradius /var/lib/freeradius /var/run/freeradius 2>/dev/null || true
+
+# Install FreeRADIUS - directories already exist so post-install won't fail
+echo "Installing FreeRADIUS..."
+DEBIAN_FRONTEND=noninteractive apt-get install -y freeradius freeradius-utils 2>&1 || {
+    echo "FreeRADIUS installation had issues, attempting recovery..."
+    # If install fails, ensure directories are correct and try again
+    mkdir -p /etc/freeradius/3.0/mods-config/files
+    mkdir -p /var/lib/freeradius
+    mkdir -p /var/run/freeradius
+    chown -R freerad:freerad /etc/freeradius /var/lib/freeradius /var/run/freeradius 2>/dev/null || true
+    chmod -R 755 /etc/freeradius /var/lib/freeradius /var/run/freeradius 2>/dev/null || true
+    dpkg --configure -a
+}
+
+# Final verification and fix
+mkdir -p /etc/freeradius/3.0/mods-config/files
+mkdir -p /var/lib/freeradius
+mkdir -p /var/run/freeradius
+chown -R freerad:freerad /etc/freeradius /var/lib/freeradius /var/run/freeradius 2>/dev/null || true
+chmod -R 755 /etc/freeradius /var/lib/freeradius /var/run/freeradius 2>/dev/null || true
 
 echo "[2/7] Creating FNAC user and group..."
 if ! id "$FNAC_USER" &>/dev/null; then
