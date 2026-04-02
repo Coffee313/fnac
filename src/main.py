@@ -3,6 +3,7 @@ Main entry point for the RADIUS server application.
 """
 
 import logging
+import subprocess
 import sys
 import threading
 import time
@@ -103,6 +104,22 @@ def main() -> int:
         # FNAC is a management UI only
         logger.info("FNAC is a management UI for FreeRADIUS")
         logger.info("FreeRADIUS handles RADIUS protocol on UDP 1812")
+        
+        # Start FreeRADIUS service
+        logger.info("Starting FreeRADIUS service...")
+        try:
+            result = subprocess.run(
+                ["sudo", "systemctl", "start", "freeradius"],
+                capture_output=True,
+                timeout=10,
+            )
+            if result.returncode == 0:
+                logger.info("FreeRADIUS started successfully")
+            else:
+                error_msg = result.stderr.decode() if result.stderr else "Unknown error"
+                logger.warning(f"Failed to start FreeRADIUS: {error_msg}")
+        except Exception as e:
+            logger.warning(f"Could not start FreeRADIUS: {e}")
         
         # Start FreeRADIUS log parser in a background thread
         parser_thread = threading.Thread(

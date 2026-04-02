@@ -57,8 +57,19 @@ class FreeRADIUSConfigGenerator:
         This ensures FreeRADIUS is configured for MAB even if it was already running.
         """
         try:
+            # Ensure mods-enabled directory exists
+            mods_enabled_dir = os.path.join(self.config_dir, "mods-enabled")
+            os.makedirs(mods_enabled_dir, exist_ok=True)
+            
+            # Create/update mab_users file first
+            mab_users_path = os.path.join(self.config_dir, "mab_users")
+            initial_content = self.generate_mab_users()
+            with open(mab_users_path, "w") as f:
+                f.write(initial_content)
+            logger.info(f"Updated {mab_users_path}")
+            
             # Update the files module to use mab_users
-            files_mod_path = os.path.join(self.config_dir, "mods-enabled", "files")
+            files_mod_path = os.path.join(mods_enabled_dir, "files")
             files_mod_content = """files {
 \tusersfile = ${confdir}/mab_users
 }
@@ -68,13 +79,6 @@ class FreeRADIUSConfigGenerator:
             with open(files_mod_path, "w") as f:
                 f.write(files_mod_content)
             logger.info(f"Updated {files_mod_path}")
-            
-            # Create/update mab_users file
-            mab_users_path = os.path.join(self.config_dir, "mab_users")
-            initial_content = self.generate_mab_users()
-            with open(mab_users_path, "w") as f:
-                f.write(initial_content)
-            logger.info(f"Updated {mab_users_path}")
                 
         except PermissionError:
             logger.warning("Permission denied setting up FreeRADIUS MAB config. Run with sudo.")
@@ -131,9 +135,6 @@ class FreeRADIUSConfigGenerator:
             "",
             "# MAB Users - MAC Authentication Bypass",
             "# Format: MAC-Address Cleartext-Password := \"MAC-Address\"",
-            "#         [Tunnel-Type = VLAN,]",
-            "#         [Tunnel-Medium-Type = IEEE-802,]",
-            "#         [Tunnel-Private-Group-ID = \"vlan_id\"]",
             "",
         ]
 
@@ -145,39 +146,30 @@ class FreeRADIUSConfigGenerator:
             mac_no_colons_upper = mac.replace(":", "").upper()
             
             # Get policy for this client's group
-            decision, vlan_id, policy_name = self.policy_engine.evaluate_policy(
-                client.client_group_name
-            )
+            try:
+                decision, vlan_id, policy_name = self.policy_engine.evaluate_policy(
+                    client.client_group_name
+                )
+            except Exception as e:
+                logger.warning(f"Failed to evaluate policy for {client.client_group_name}: {e}")
+                decision = PolicyDecision.ACCEPT
+                vlan_id = None
 
-            # Build VLAN attributes if needed
-            vlan_attrs = []
-            if decision == PolicyDecision.ACCEPT_WITH_VLAN and vlan_id:
-                vlan_attrs = [
-                    f'    Tunnel-Type = VLAN,',
-                    f'    Tunnel-Medium-Type = IEEE-802,',
-                    f'    Tunnel-Private-Group-ID = "{vlan_id}"'
-                ]
-            elif decision == PolicyDecision.REJECT:
-                vlan_attrs = [f'    # REJECTED - will not authenticate']
-
+            # Build entry - simple format without VLAN for now
             # Entry with colons lowercase
             lines.append(f'{mac_lower} Cleartext-Password := "{mac_lower}"')
-            lines.extend(vlan_attrs)
             lines.append("")
 
             # Entry with colons uppercase
             lines.append(f'{mac_upper} Cleartext-Password := "{mac_upper}"')
-            lines.extend(vlan_attrs)
             lines.append("")
 
             # Entry without colons lowercase
             lines.append(f'{mac_no_colons_lower} Cleartext-Password := "{mac_no_colons_lower}"')
-            lines.extend(vlan_attrs)
             lines.append("")
 
             # Entry without colons uppercase
             lines.append(f'{mac_no_colons_upper} Cleartext-Password := "{mac_no_colons_upper}"')
-            lines.extend(vlan_attrs)
             lines.append("")
 
         return "\n".join(lines)
@@ -263,6 +255,19 @@ class FreeRADIUSConfigGenerator:
             True if successful, False otherwise
         """
         try:
+            # First check if FreeRADIUS is running
+            status_result = subprocess.run(
+                ["sudo", "systemctl", "is-active", "freeradius"],
+                capture_output=True,
+                timeout=5,
+            )
+            
+            is_running = status_result.returncode == 0
+            
+            if not is_running:
+                logger.info("FreeRADIUS is not running, skipping reload")
+                return True
+            
             # Try systemctl reload first
             result = subprocess.run(
                 ["sudo", "systemctl", "reload", "freeradius"],
