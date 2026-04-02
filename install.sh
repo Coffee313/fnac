@@ -132,7 +132,7 @@ sleep 5
 # Create minimal radiusd.conf if missing
 if [ ! -f /etc/freeradius/3.0/radiusd.conf ]; then
     echo "Creating minimal FreeRADIUS configuration..."
-    sudo tee /etc/freeradius/3.0/radiusd.conf > /dev/null << 'RADIUSEOF'
+    cat > /tmp/radiusd.conf << 'RADIUSEOF'
 prefix = /usr
 exec_prefix = /usr
 sysconfdir = /etc
@@ -170,6 +170,7 @@ listen {
 $INCLUDE mods-enabled/
 $INCLUDE sites-enabled/
 RADIUSEOF
+    mv /tmp/radiusd.conf /etc/freeradius/3.0/radiusd.conf
     chown freerad:freerad /etc/freeradius/3.0/radiusd.conf
     chmod 640 /etc/freeradius/3.0/radiusd.conf
 fi
@@ -184,9 +185,9 @@ mkdir -p /etc/freeradius/3.0/sites-enabled
 chown freerad:freerad /etc/freeradius/3.0/sites-enabled
 chmod 755 /etc/freeradius/3.0/sites-enabled
 
-# Create default site using sudo tee
+# Create default site
 if [ ! -f /etc/freeradius/3.0/sites-enabled/default ]; then
-    sudo tee /etc/freeradius/3.0/sites-enabled/default > /dev/null << 'SITEEOF'
+    cat > /tmp/default_site << 'SITEEOF'
 server default {
     authorize {
         ok
@@ -199,6 +200,7 @@ server default {
     }
 }
 SITEEOF
+    mv /tmp/default_site /etc/freeradius/3.0/sites-enabled/default
     chown freerad:freerad /etc/freeradius/3.0/sites-enabled/default
     chmod 640 /etc/freeradius/3.0/sites-enabled/default
 fi
