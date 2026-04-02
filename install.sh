@@ -85,18 +85,19 @@ listen {
     proto = udp
 }
 
-modules {
-    always ok {
-        rcode = ok
-    }
-    always reject {
-        rcode = reject
-    }
-    files {
-        usersfile = ${confdir}/mab_users
-    }
-}
+# Include all modules from mods-enabled
+$INCLUDE mods-enabled/
 
+# Include all sites from sites-enabled
+$INCLUDE sites-enabled/
+RADIUSEOF
+chown freerad:freerad /etc/freeradius/3.0/radiusd.conf
+chmod 640 /etc/freeradius/3.0/radiusd.conf
+
+# Create a simple default site configuration
+echo "Creating default site configuration..."
+mkdir -p /etc/freeradius/3.0/sites-available
+cat > /etc/freeradius/3.0/sites-available/default << 'SITEEOF'
 server default {
     authorize {
         files
@@ -115,62 +116,12 @@ server default {
         detail
     }
 }
-RADIUSEOF
-chown freerad:freerad /etc/freeradius/3.0/radiusd.conf
-chmod 640 /etc/freeradius/3.0/radiusd.conf
+SITEEOF
+chown freerad:freerad /etc/freeradius/3.0/sites-available/default
+chmod 640 /etc/freeradius/3.0/sites-available/default
 
-# Create required module configuration files
-echo "Creating FreeRADIUS module configurations..."
-
-# Create pap module (Password Authentication Protocol)
-mkdir -p /etc/freeradius/3.0/mods-available
-cat > /etc/freeradius/3.0/mods-available/pap << 'PAPEOF'
-pap {
-    auto_header = yes
-}
-PAPEOF
-chown freerad:freerad /etc/freeradius/3.0/mods-available/pap
-chmod 640 /etc/freeradius/3.0/mods-available/pap
-
-# Create symlink in mods-enabled
-ln -sf ../mods-available/pap /etc/freeradius/3.0/mods-enabled/pap 2>/dev/null || true
-
-# Create attr_filter module for reject responses
-cat > /etc/freeradius/3.0/mods-available/attr_filter << 'ATTREOF'
-attr_filter attr_filter.access_reject {
-    filename = ${modconfdir}/attr_filter/access-reject
-}
-ATTREOF
-chown freerad:freerad /etc/freeradius/3.0/mods-available/attr_filter
-chmod 640 /etc/freeradius/3.0/mods-available/attr_filter
-
-# Create symlink in mods-enabled
-ln -sf ../mods-available/attr_filter /etc/freeradius/3.0/mods-enabled/attr_filter 2>/dev/null || true
-
-# Create detail module for accounting
-cat > /etc/freeradius/3.0/mods-available/detail << 'DETAILEOF'
-detail {
-    filename = ${radacctdir}/detail
-    header = "%t"
-    permissions = 0600
-    locking = no
-    escape_user_name = no
-}
-DETAILEOF
-chown freerad:freerad /etc/freeradius/3.0/mods-available/detail
-chmod 640 /etc/freeradius/3.0/mods-available/detail
-
-# Create symlink in mods-enabled
-ln -sf ../mods-available/detail /etc/freeradius/3.0/mods-enabled/detail 2>/dev/null || true
-
-# Create attr_filter directory and access-reject file
-mkdir -p /etc/freeradius/3.0/mods-config/attr_filter
-cat > /etc/freeradius/3.0/mods-config/attr_filter/access-reject << 'REJECTEOF'
-# Attributes to allow in Access-Reject responses
-Reply-Message
-REJECTEOF
-chown freerad:freerad /etc/freeradius/3.0/mods-config/attr_filter/access-reject
-chmod 640 /etc/freeradius/3.0/mods-config/attr_filter/access-reject
+# Create symlink to enable the default site
+ln -sf ../sites-available/default /etc/freeradius/3.0/sites-enabled/default 2>/dev/null || true
 
 # Create log file that FreeRADIUS expects
 touch /var/log/freeradius/radius.log
@@ -202,6 +153,42 @@ systemctl unmask freeradius 2>/dev/null || true
 # Stop FreeRADIUS if it started
 systemctl stop freeradius 2>/dev/null || true
 systemctl disable freeradius 2>/dev/null || true
+
+# Copy default modules from package installation
+echo "Setting up FreeRADIUS modules from package..."
+if [ -d "/etc/freeradius/3.0/mods-available" ]; then
+    # Copy pap module if it exists
+    if [ -f "/etc/freeradius/3.0/mods-available/pap" ]; then
+        ln -sf ../mods-available/pap /etc/freeradius/3.0/mods-enabled/pap 2>/dev/null || true
+    fi
+    
+    # Copy files module if it exists
+    if [ -f "/etc/freeradius/3.0/mods-available/files" ]; then
+        ln -sf ../mods-available/files /etc/freeradius/3.0/mods-enabled/files 2>/dev/null || true
+    fi
+    
+    # Copy attr_filter module if it exists
+    if [ -f "/etc/freeradius/3.0/mods-available/attr_filter" ]; then
+        ln -sf ../mods-available/attr_filter /etc/freeradius/3.0/mods-enabled/attr_filter 2>/dev/null || true
+    fi
+    
+    # Copy detail module if it exists
+    if [ -f "/etc/freeradius/3.0/mods-available/detail" ]; then
+        ln -sf ../mods-available/detail /etc/freeradius/3.0/mods-enabled/detail 2>/dev/null || true
+    fi
+fi
+
+# Update the files module to use mab_users
+echo "Configuring files module to use mab_users..."
+if [ -f "/etc/freeradius/3.0/mods-enabled/files" ]; then
+    cat > /etc/freeradius/3.0/mods-enabled/files << 'FILESEOF'
+files {
+    usersfile = ${confdir}/mab_users
+}
+FILESEOF
+    chown freerad:freerad /etc/freeradius/3.0/mods-enabled/files
+    chmod 640 /etc/freeradius/3.0/mods-enabled/files
+fi
 
 # Create systemd override to force FreeRADIUS to use our config
 mkdir -p /etc/systemd/system/freeradius.service.d
@@ -314,20 +301,21 @@ usermod -a -G freerad fnac 2>/dev/null || true
 
 # Set directory permissions: 750 (rwxr-x---)
 chmod 750 /etc/freeradius/3.0
-chmod 750 /etc/freeradius/3.0/mods-enabled
-chmod 750 /etc/freeradius/3.0/mods-available
-chmod 750 /etc/freeradius/3.0/sites-enabled
-chmod 750 /etc/freeradius/3.0/mods-config
-chmod 750 /etc/freeradius/3.0/mods-config/attr_filter
+chmod 750 /etc/freeradius/3.0/mods-enabled 2>/dev/null || true
+chmod 750 /etc/freeradius/3.0/mods-available 2>/dev/null || true
+chmod 750 /etc/freeradius/3.0/sites-enabled 2>/dev/null || true
+chmod 750 /etc/freeradius/3.0/sites-available 2>/dev/null || true
+chmod 750 /etc/freeradius/3.0/mods-config 2>/dev/null || true
 
-# Set file permissions: 660 (rw-rw----)
-# Owner (freerad) can read/write, Group (freerad) can read/write
-chmod 660 /etc/freeradius/3.0/clients.conf 2>/dev/null || true
-chmod 660 /etc/freeradius/3.0/mab_users 2>/dev/null || true
-chmod 660 /etc/freeradius/3.0/radiusd.conf 2>/dev/null || true
-chmod 660 /etc/freeradius/3.0/mods-enabled/* 2>/dev/null || true
-chmod 660 /etc/freeradius/3.0/mods-available/* 2>/dev/null || true
-chmod 660 /etc/freeradius/3.0/mods-config/attr_filter/* 2>/dev/null || true
+# Set file permissions: 640 (rw-r-----)
+# Owner (freerad) can read/write, Group (freerad) can read
+chmod 640 /etc/freeradius/3.0/clients.conf 2>/dev/null || true
+chmod 640 /etc/freeradius/3.0/mab_users 2>/dev/null || true
+chmod 640 /etc/freeradius/3.0/radiusd.conf 2>/dev/null || true
+chmod 640 /etc/freeradius/3.0/mods-enabled/* 2>/dev/null || true
+chmod 640 /etc/freeradius/3.0/mods-available/* 2>/dev/null || true
+chmod 640 /etc/freeradius/3.0/sites-enabled/* 2>/dev/null || true
+chmod 640 /etc/freeradius/3.0/sites-available/* 2>/dev/null || true
 chmod 660 /etc/freeradius/3.0/sites-enabled/default 2>/dev/null || true
 
 # Ensure files exist and are owned by freerad
