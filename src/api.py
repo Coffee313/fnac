@@ -489,12 +489,45 @@ def create_app(
             if not file.filename.endswith('.csv'):
                 return _err("File must be CSV format")
             
-            # Read CSV
-            stream = StringIO(file.stream.read().decode("UTF8"), newline=None)
-            reader = csv.DictReader(stream)
+            # Read CSV content
+            content = file.stream.read().decode("UTF8")
+            stream = StringIO(content, newline=None)
             
-            if not reader.fieldnames or 'MAC Address' not in reader.fieldnames:
-                return _err("CSV must have 'MAC Address' column")
+            # Detect delimiter (comma, semicolon, or tab)
+            sample = content[:1024]
+            sniffer = csv.Sniffer()
+            try:
+                delimiter = sniffer.sniff(sample).delimiter
+            except csv.Error:
+                # Default to comma if detection fails
+                delimiter = ','
+            
+            # Reset stream and read with detected delimiter
+            stream = StringIO(content, newline=None)
+            reader = csv.DictReader(stream, delimiter=delimiter)
+            
+            if not reader.fieldnames:
+                return _err("CSV file is empty")
+            
+            # Find the MAC address column (case-insensitive)
+            mac_col = None
+            for field in reader.fieldnames:
+                if 'mac' in field.lower() and 'address' in field.lower():
+                    mac_col = field
+                    break
+            
+            if not mac_col:
+                return _err("CSV must have a 'MAC Address' column")
+            
+            # Find other columns (case-insensitive)
+            name_col = None
+            group_col = None
+            
+            for field in reader.fieldnames:
+                if 'name' in field.lower() and name_col is None:
+                    name_col = field
+                if 'group' in field.lower() and group_col is None:
+                    group_col = field
             
             results = {
                 "imported": 0,
@@ -504,9 +537,9 @@ def create_app(
             
             for row_num, row in enumerate(reader, start=2):  # Start at 2 (after header)
                 try:
-                    mac = row.get('MAC Address', '').strip()
-                    name = row.get('Client Name', '').strip()
-                    group = row.get('Client Group', '').strip()
+                    mac = row.get(mac_col, '').strip()
+                    name = row.get(name_col, '').strip() if name_col else ''
+                    group = row.get(group_col, '').strip() if group_col else ''
                     
                     if not mac:
                         results["errors"].append(f"Row {row_num}: MAC Address is required")
