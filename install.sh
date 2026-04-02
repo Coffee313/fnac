@@ -126,13 +126,12 @@ systemctl enable "$SERVICE_NAME"
 echo "[7/7] Starting services..."
 systemctl start "$SERVICE_NAME"
 
-# Wait for FNAC to start and generate config
+# Wait for FNAC to start
 sleep 5
 
-# Create minimal radiusd.conf if missing
-if [ ! -f /etc/freeradius/3.0/radiusd.conf ]; then
-    echo "Creating minimal FreeRADIUS configuration..."
-    cat > /tmp/radiusd.conf << 'RADIUSEOF'
+# Always create fresh minimal config (FNAC will generate proper one)
+echo "Creating minimal FreeRADIUS configuration..."
+cat > /tmp/radiusd.conf << 'RADIUSEOF'
 prefix = /usr
 exec_prefix = /usr
 sysconfdir = /etc
@@ -172,10 +171,9 @@ modules {
 
 $INCLUDE sites-enabled/
 RADIUSEOF
-    mv /tmp/radiusd.conf /etc/freeradius/3.0/radiusd.conf
-    chown freerad:freerad /etc/freeradius/3.0/radiusd.conf
-    chmod 640 /etc/freeradius/3.0/radiusd.conf
-fi
+mv /tmp/radiusd.conf /etc/freeradius/3.0/radiusd.conf
+chown freerad:freerad /etc/freeradius/3.0/radiusd.conf
+chmod 640 /etc/freeradius/3.0/radiusd.conf
 
 # Create mods-enabled directory
 mkdir -p /etc/freeradius/3.0/mods-enabled
@@ -188,8 +186,7 @@ chown freerad:freerad /etc/freeradius/3.0/sites-enabled
 chmod 755 /etc/freeradius/3.0/sites-enabled
 
 # Create default site
-if [ ! -f /etc/freeradius/3.0/sites-enabled/default ]; then
-    cat > /tmp/default_site << 'SITEEOF'
+cat > /tmp/default_site << 'SITEEOF'
 server default {
     authorize {
         ok
@@ -208,19 +205,19 @@ server default {
     }
 }
 SITEEOF
-    mv /tmp/default_site /etc/freeradius/3.0/sites-enabled/default
-    chown freerad:freerad /etc/freeradius/3.0/sites-enabled/default
-    chmod 640 /etc/freeradius/3.0/sites-enabled/default
-fi
+mv /tmp/default_site /etc/freeradius/3.0/sites-enabled/default
+chown freerad:freerad /etc/freeradius/3.0/sites-enabled/default
+chmod 640 /etc/freeradius/3.0/sites-enabled/default
 
 # Create systemd override to skip config validation
 mkdir -p /etc/systemd/system/freeradius.service.d
-tee /etc/systemd/system/freeradius.service.d/override.conf > /dev/null << 'EOF'
+cat > /tmp/override.conf << 'EOF'
 [Service]
 ExecStartPre=
 ExecStart=
 ExecStart=/usr/sbin/freeradius -f
 EOF
+mv /tmp/override.conf /etc/systemd/system/freeradius.service.d/override.conf
 
 systemctl daemon-reload
 
