@@ -184,6 +184,10 @@ chown -R "$FNAC_USER:$FNAC_GROUP" "$INSTALL_DIR"
 chmod 755 "$INSTALL_DIR"
 chmod 755 "$INSTALL_DIR/fnac.db" 2>/dev/null || true
 
+# Fix sudo path issue in config generator - use full path to sudo
+echo "Fixing sudo path in config generator..."
+sed -i 's/\["sudo",/["\/usr\/bin\/sudo",/g' "$INSTALL_DIR/src/freeradius_config_generator.py"
+
 echo "[6/7] Creating systemd service..."
 cat > "/etc/systemd/system/${SERVICE_NAME}.service" << EOF
 [Unit]

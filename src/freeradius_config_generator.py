@@ -256,7 +256,7 @@ class FreeRADIUSConfigGenerator:
         try:
             # First check if FreeRADIUS is running
             status_result = subprocess.run(
-                ["sudo", "systemctl", "is-active", "freeradius"],
+                ["/usr/bin/sudo", "systemctl", "is-active", "freeradius"],
                 capture_output=True,
                 timeout=5,
             )
@@ -267,7 +267,7 @@ class FreeRADIUSConfigGenerator:
                 # Restart if already running
                 logger.info("Restarting FreeRADIUS to apply new configuration...")
                 result = subprocess.run(
-                    ["sudo", "systemctl", "restart", "freeradius"],
+                    ["/usr/bin/sudo", "systemctl", "restart", "freeradius"],
                     capture_output=True,
                     timeout=10,
                 )
@@ -283,7 +283,7 @@ class FreeRADIUSConfigGenerator:
                 # Start if not running
                 logger.info("Starting FreeRADIUS...")
                 result = subprocess.run(
-                    ["sudo", "systemctl", "start", "freeradius"],
+                    ["/usr/bin/sudo", "systemctl", "start", "freeradius"],
                     capture_output=True,
                     timeout=10,
                 )
@@ -370,7 +370,7 @@ class FreeRADIUSConfigGenerator:
         """
         try:
             result = subprocess.run(
-                ["sudo", "freeradius", "-C"],
+                ["/usr/bin/sudo", "freeradius", "-C"],
                 capture_output=True,
                 timeout=10,
             )
