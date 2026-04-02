@@ -294,23 +294,19 @@ touch /opt/fnac/freeradius_config/mab_users
 
 # Set permissions so FNAC can write to everything
 chown -R fnac:fnac /opt/fnac/freeradius_config
-chmod -R 755 /opt/fnac/freeradius_config
 
-# CRITICAL: Allow FreeRADIUS (freerad user) to read the config directory
-# Add freerad to fnac group so it can read the config files
-usermod -a -G fnac freerad 2>/dev/null || true
+# Make directories world-writable so FNAC can create/modify files
+chmod 777 /opt/fnac/freeradius_config
+chmod 777 /opt/fnac/freeradius_config/mods-enabled
+chmod 777 /opt/fnac/freeradius_config/sites-enabled
+chmod 777 /opt/fnac/freeradius_config/mods-config
 
-# Make config files group-writable so both fnac and freerad can access them
-# This allows FNAC to write and FreeRADIUS to read
-chmod 775 /opt/fnac/freeradius_config
-chmod 775 /opt/fnac/freeradius_config/mods-enabled
-chmod 775 /opt/fnac/freeradius_config/sites-enabled
-chmod 775 /opt/fnac/freeradius_config/mods-config
-chmod 664 /opt/fnac/freeradius_config/clients.conf
-chmod 664 /opt/fnac/freeradius_config/mab_users
-chmod 664 /opt/fnac/freeradius_config/radiusd.conf
-chmod 664 /opt/fnac/freeradius_config/mods-enabled/files
-chmod 664 /opt/fnac/freeradius_config/sites-enabled/default
+# Make config files world-readable and writable so both FNAC and FreeRADIUS can access them
+chmod 666 /opt/fnac/freeradius_config/clients.conf
+chmod 666 /opt/fnac/freeradius_config/mab_users
+chmod 666 /opt/fnac/freeradius_config/radiusd.conf
+chmod 666 /opt/fnac/freeradius_config/mods-enabled/files
+chmod 666 /opt/fnac/freeradius_config/sites-enabled/default
 
 # Start FNAC only
 systemctl start "$SERVICE_NAME"
