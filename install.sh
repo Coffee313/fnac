@@ -94,6 +94,66 @@ RADIUSEOF
 chown freerad:freerad /etc/freeradius/3.0/radiusd.conf
 chmod 640 /etc/freeradius/3.0/radiusd.conf
 
+# Create log file that FreeRADIUS expects
+touch /var/log/freeradius/radius.log
+chown freerad:freerad /var/log/freeradius/radius.log
+chmod 640 /var/log/freeradius/radius.log
+
+# Also create the /usr/var/log directory that package config expects (as fallback)
+mkdir -p /usr/var/log
+touch /usr/var/log/radius.log
+chmod 666 /usr/var/log/radius.log
+
+# Verify our radiusd.conf is being used by checking it exists and has correct content
+if grep -q "logdir = /var/log/freeradius" /etc/freeradius/3.0/radiusd.conf; then
+    echo "✓ radiusd.conf has correct logdir"
+else
+    echo "✗ radiusd.conf has wrong logdir, fixing..."
+    cat > /etc/freeradius/3.0/radiusd.conf << 'RADIUSEOF'
+prefix = /usr
+exec_prefix = /usr
+sysconfdir = /etc
+localstatedir = /var
+sbindir = /usr/sbin
+logdir = /var/log/freeradius
+radacctdir = /var/log/freeradius/radacct
+confdir = /etc/freeradius/3.0
+modconfdir = /etc/freeradius/3.0/mods-config
+certdir = /etc/freeradius/3.0/certs
+cadir = /etc/freeradius/3.0/certs
+run_dir = /var/run/freeradius
+
+max_request_time = 30
+cleanup_delay = 5
+max_requests = 16384
+
+listen {
+    type = auth
+    ipaddr = *
+    port = 1812
+    proto = udp
+}
+
+listen {
+    type = acct
+    ipaddr = *
+    port = 1813
+    proto = udp
+}
+
+modules {
+    always ok {
+        rcode = ok
+    }
+}
+
+$INCLUDE mods-enabled/
+$INCLUDE sites-enabled/
+RADIUSEOF
+    chown freerad:freerad /etc/freeradius/3.0/radiusd.conf
+    chmod 640 /etc/freeradius/3.0/radiusd.conf
+fi
+
 # Create default site
 cat > /etc/freeradius/3.0/sites-enabled/default << 'SITEEOF'
 server default {
@@ -198,8 +258,6 @@ modules {
 $INCLUDE mods-enabled/
 $INCLUDE sites-enabled/
 RADIUSEOF
-chown freerad:freerad /etc/freeradius/3.0/radiusd.conf
-chmod 640 /etc/freeradius/3.0/radiusd.conf
 
 # Verify directories exist
 mkdir -p /etc/freeradius/3.0/mods-config/files
