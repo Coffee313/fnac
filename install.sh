@@ -192,24 +192,27 @@ touch /etc/freeradius/3.0/mab_users
 
 # Set permissions
 echo "Setting permissions..."
-chown -R freerad:freerad /etc/freeradius/3.0
-chown -R freerad:freerad /var/lib/freeradius
-chown -R freerad:freerad /var/run/freeradius
-chown -R freerad:freerad /var/log/freeradius
+chown -R freerad:freerad /etc/freeradius/3.0 2>/dev/null || true
+chown -R freerad:freerad /var/lib/freeradius 2>/dev/null || true
+chown -R freerad:freerad /var/run/freeradius 2>/dev/null || true
+chown -R freerad:freerad /var/log/freeradius 2>/dev/null || true
 
-chmod 750 /etc/freeradius/3.0
-chmod 750 /etc/freeradius/3.0/mods-enabled
-chmod 750 /etc/freeradius/3.0/mods-available
-chmod 750 /etc/freeradius/3.0/sites-enabled
-chmod 750 /etc/freeradius/3.0/sites-available
-chmod 750 /etc/freeradius/3.0/mods-config
-chmod 750 /etc/freeradius/3.0/mods-config/attr_filter
+chmod 750 /etc/freeradius/3.0 2>/dev/null || true
+[ -d /etc/freeradius/3.0/mods-enabled ] && chmod 750 /etc/freeradius/3.0/mods-enabled || true
+[ -d /etc/freeradius/3.0/mods-available ] && chmod 750 /etc/freeradius/3.0/mods-available || true
+[ -d /etc/freeradius/3.0/sites-enabled ] && chmod 750 /etc/freeradius/3.0/sites-enabled || true
+[ -d /etc/freeradius/3.0/sites-available ] && chmod 750 /etc/freeradius/3.0/sites-available || true
+[ -d /etc/freeradius/3.0/mods-config ] && chmod 750 /etc/freeradius/3.0/mods-config || true
+[ -d /etc/freeradius/3.0/mods-config/attr_filter ] && chmod 750 /etc/freeradius/3.0/mods-config/attr_filter || true
 
-chmod 640 /etc/freeradius/3.0/radiusd.conf
-chmod 640 /etc/freeradius/3.0/mab_users
-chmod 640 /etc/freeradius/3.0/mods-enabled/*
-chmod 640 /etc/freeradius/3.0/sites-enabled/*
-chmod 640 /etc/freeradius/3.0/mods-config/attr_filter/*
+chmod 640 /etc/freeradius/3.0/radiusd.conf 2>/dev/null || true
+chmod 640 /etc/freeradius/3.0/mab_users 2>/dev/null || true
+[ -f /etc/freeradius/3.0/mods-enabled/pap ] && chmod 640 /etc/freeradius/3.0/mods-enabled/pap || true
+[ -f /etc/freeradius/3.0/mods-enabled/files ] && chmod 640 /etc/freeradius/3.0/mods-enabled/files || true
+[ -f /etc/freeradius/3.0/mods-enabled/attr_filter ] && chmod 640 /etc/freeradius/3.0/mods-enabled/attr_filter || true
+[ -f /etc/freeradius/3.0/mods-enabled/detail ] && chmod 640 /etc/freeradius/3.0/mods-enabled/detail || true
+[ -f /etc/freeradius/3.0/sites-enabled/default ] && chmod 640 /etc/freeradius/3.0/sites-enabled/default || true
+[ -f /etc/freeradius/3.0/mods-config/attr_filter/access-reject ] && chmod 640 /etc/freeradius/3.0/mods-config/attr_filter/access-reject || true
 
 # Create systemd override
 mkdir -p /etc/systemd/system/freeradius.service.d
