@@ -361,8 +361,8 @@ except Exception as e:
     sys.exit(1)
 GENEOF
 
-# Run the config generator as the fnac user
-sudo -u fnac python3 /tmp/generate_config.py
+# Run the config generator as root (we're already root in the install script)
+python3 /tmp/generate_config.py
 
 if [ $? -eq 0 ]; then
     echo "Configuration generated successfully"
@@ -373,6 +373,12 @@ fi
 
 # Clean up temp script
 rm -f /tmp/generate_config.py
+
+# Fix permissions on generated files
+chown freerad:freerad /etc/freeradius/3.0/clients.conf 2>/dev/null || true
+chown freerad:freerad /etc/freeradius/3.0/mab_users 2>/dev/null || true
+chmod 640 /etc/freeradius/3.0/clients.conf 2>/dev/null || true
+chmod 640 /etc/freeradius/3.0/mab_users 2>/dev/null || true
 
 # Now start FreeRADIUS
 echo "Starting FreeRADIUS..."
