@@ -158,19 +158,15 @@ class FreeRADIUSConfigGenerator:
             # Build entry - simple format without VLAN for now
             # Entry with colons lowercase
             lines.append(f'{mac_lower} Cleartext-Password := "{mac_lower}"')
-            lines.append("")
 
             # Entry with colons uppercase
             lines.append(f'{mac_upper} Cleartext-Password := "{mac_upper}"')
-            lines.append("")
 
             # Entry without colons lowercase
             lines.append(f'{mac_no_colons_lower} Cleartext-Password := "{mac_no_colons_lower}"')
-            lines.append("")
 
             # Entry without colons uppercase
             lines.append(f'{mac_no_colons_upper} Cleartext-Password := "{mac_no_colons_upper}"')
-            lines.append("")
 
         return "\n".join(lines)
 

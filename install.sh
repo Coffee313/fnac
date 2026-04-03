@@ -103,6 +103,8 @@ listen {
     proto = udp
 }
 
+$INCLUDE clients.conf
+
 modules {
     $INCLUDE mods-enabled/
 }
@@ -166,6 +168,9 @@ cat > /etc/freeradius/3.0/sites-available/default << 'SITEEOF'
 server default {
     authorize {
         files
+        update control {
+            Auth-Type := PAP
+        }
     }
     authenticate {
         Auth-Type PAP {
