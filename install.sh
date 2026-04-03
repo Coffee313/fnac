@@ -314,8 +314,80 @@ sleep 2
 # Start FNAC only
 systemctl start "$SERVICE_NAME"
 
-# Wait for FNAC to start
-sleep 5
+# Wait for FNAC to fully start and initialize database
+echo "Waiting for FNAC to initialize..."
+sleep 10
+
+# Generate initial FreeRADIUS configuration from FNAC database
+echo "Generating FreeRADIUS configuration from FNAC database..."
+cd "$INSTALL_DIR"
+source venv/bin/activate
+
+# Create a Python script to generate the config
+cat > /tmp/generate_config.py << 'GENEOF'
+import sys
+sys.path.insert(0, '/opt/fnac')
+
+from src.device_manager import Device_Manager
+from src.client_manager import Client_Manager
+from src.policy_engine import Policy_Engine
+from src.freeradius_config_generator import FreeRADIUSConfigGenerator
+
+try:
+    device_manager = Device_Manager()
+    client_manager = Client_Manager()
+    policy_engine = Policy_Engine()
+    
+    config_generator = FreeRADIUSConfigGenerator(
+        device_manager=device_manager,
+        client_manager=client_manager,
+        policy_engine=policy_engine,
+    )
+    
+    # Generate and write configuration
+    success = config_generator.update_all_configs(reload=False, dry_run=False)
+    
+    if success:
+        print("Configuration generated successfully")
+        sys.exit(0)
+    else:
+        print("Failed to generate configuration")
+        sys.exit(1)
+        
+except Exception as e:
+    print(f"Error generating configuration: {e}")
+    import traceback
+    traceback.print_exc()
+    sys.exit(1)
+GENEOF
+
+# Run the config generator as the fnac user
+sudo -u fnac python3 /tmp/generate_config.py
+
+if [ $? -eq 0 ]; then
+    echo "Configuration generated successfully"
+else
+    echo "Warning: Failed to generate initial configuration"
+    echo "This is normal if no devices/clients have been added yet"
+fi
+
+# Clean up temp script
+rm -f /tmp/generate_config.py
+
+# Now start FreeRADIUS
+echo "Starting FreeRADIUS..."
+systemctl start freeradius
+
+# Wait for FreeRADIUS to start
+sleep 3
+
+# Verify FreeRADIUS is running
+if systemctl is-active --quiet freeradius; then
+    echo "FreeRADIUS started successfully"
+else
+    echo "Warning: FreeRADIUS failed to start"
+    echo "Check logs with: sudo journalctl -u freeradius -n 50"
+fi
 
 echo ""
 echo "=========================================="
@@ -340,5 +412,5 @@ echo "1. Open http://localhost:5000 in your browser"
 echo "2. Create device groups and devices"
 echo "3. Create client groups and clients with MAC addresses"
 echo "4. Create policies for authentication"
-echo "5. FreeRADIUS will start automatically when you create your first device"
+echo "5. FreeRADIUS configuration will be updated automatically"
 echo ""
