@@ -233,8 +233,19 @@ if ! id "$FNAC_USER" &>/dev/null; then
     useradd -r -g "$FNAC_GROUP" -d "$INSTALL_DIR" -s /bin/false "$FNAC_USER"
 fi
 
-# Add fnac to freerad group
+# Add fnac to freerad group so it can write to FreeRADIUS config
 usermod -a -G freerad fnac 2>/dev/null || true
+
+# Make FreeRADIUS config directory writable by freerad group
+chmod 770 /etc/freeradius/3.0 2>/dev/null || true
+chmod 770 /etc/freeradius/3.0/mods-enabled 2>/dev/null || true
+chmod 770 /etc/freeradius/3.0/sites-enabled 2>/dev/null || true
+chmod 770 /etc/freeradius/3.0/mods-config 2>/dev/null || true
+chmod 770 /etc/freeradius/3.0/mods-config/attr_filter 2>/dev/null || true
+
+# Make config files writable by freerad group
+chmod 660 /etc/freeradius/3.0/clients.conf 2>/dev/null || true
+chmod 660 /etc/freeradius/3.0/mab_users 2>/dev/null || true
 
 # Allow fnac user to restart FreeRADIUS without password
 echo "Configuring passwordless sudo for FNAC..."
@@ -377,8 +388,8 @@ rm -f /tmp/generate_config.py
 # Fix permissions on generated files
 chown freerad:freerad /etc/freeradius/3.0/clients.conf 2>/dev/null || true
 chown freerad:freerad /etc/freeradius/3.0/mab_users 2>/dev/null || true
-chmod 640 /etc/freeradius/3.0/clients.conf 2>/dev/null || true
-chmod 640 /etc/freeradius/3.0/mab_users 2>/dev/null || true
+chmod 660 /etc/freeradius/3.0/clients.conf 2>/dev/null || true
+chmod 660 /etc/freeradius/3.0/mab_users 2>/dev/null || true
 
 # Now start FreeRADIUS
 echo "Starting FreeRADIUS..."
